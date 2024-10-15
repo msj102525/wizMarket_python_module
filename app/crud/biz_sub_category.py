@@ -131,7 +131,7 @@ def get_all_biz_sub_category_by_biz_main_category_id(
             return results
     except Exception as e:
         print(f"get_all_main_category Error: {e}")
-        raise HTTPException(status_code=500, detail="Database query failed")
+        # raise HTTPException(status_code=500, detail="Database query failed")
     finally:
         close_connection(connection)
 

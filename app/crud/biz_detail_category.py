@@ -320,10 +320,10 @@ def select_all_biz_detail_category_id() -> BizDetailCategoryId:
             return results
 
     except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
+        # logger.error(f"MySQL Error: {e}")
         rollback(connection)
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
+        # logger.error(f"Unexpected Error: {e}")
         rollback(connection)
     finally:
         if cursor:

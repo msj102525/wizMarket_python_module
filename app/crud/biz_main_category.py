@@ -36,7 +36,7 @@ def get_or_create_biz_main_category_id(biz_main_category_name: str) -> int:
             return cursor.lastrowid
     except Exception as e:
         print(f"get_or_create_biz_main_category_id:{e}")
-        raise HTTPException(status_code=500, detail="Database query failed")
+        # raise HTTPException(status_code=500, detail="Database query failed")
     finally:
         close_cursor(cursor)
         close_connection(connection)
@@ -57,7 +57,7 @@ def get_main_category_name_by_main_category_id(main_category_id: int) -> str:
             return ""
     except Exception as e:
         print(f"get_main_category_name:{e}")
-        raise HTTPException(status_code=500, detail="Database query failed")
+        # raise HTTPException(status_code=500, detail="Database query failed")
     finally:
         close_cursor(cursor)
         close_connection(connection)
@@ -105,7 +105,7 @@ def get_all_main_category(reference_id: int) -> List[BizMainCategoryOutput]:
             return results
     except Exception as e:
         print(f"get_all_main_category Error: {e}")
-        raise HTTPException(status_code=500, detail="Database query failed")
+        # raise HTTPException(status_code=500, detail="Database query failed")
     finally:
         close_connection(connection)
 
