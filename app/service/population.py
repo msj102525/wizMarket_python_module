@@ -85,36 +85,25 @@ ROOT_PATH = os.getenv("ROOT_PATH")
 csv_directory = os.path.join(ROOT_PATH, "app", "data", "populationData")
 
 
-def load_and_insert_population_data():
-    connection = get_db_connection()
+def load_and_insert_population_data(file_name):
+        connection = get_db_connection()
 
-    # 1. 저번 달 계산 (DB 조회용 및 파일 필터링용)
-    previous_month_db = get_previous_month_for_db()  # 'YYYY-MM-DD' 형식
-    previous_month_file = get_previous_month_for_file()  # 'YYYYMMDD' 형식
+        # 1. 저번 달 계산 (DB 조회용 및 파일 필터링용)
+        previous_month_db = get_previous_month_for_db()  # 'YYYY-MM-DD' 형식
 
-    # 2. 데이터베이스에 저번 달 데이터가 있는지 확인
-    exists = check_previous_month_data_exists(connection, previous_month_db)
 
-    if exists:
-        print(
-            f"저번 달({previous_month_db}) 데이터가 이미 존재합니다. 인서트를 생략합니다."
-        )
-        return
+        # 2. 데이터베이스에 저번 달 데이터가 있는지 확인
+        exists = check_previous_month_data_exists(connection, previous_month_db)
 
-    # 3. 저번 달 파일 필터링
-    try:
-        files = [
-            f
-            for f in os.listdir(csv_directory)
-            if previous_month_file in f and f.endswith(".csv")
-        ]
-        if not files:
-            print(f"저번 달({previous_month_file})에 해당하는 파일을 찾을 수 없습니다.")
+        if exists:
+            print(
+                f"저번 달({previous_month_db}) 데이터가 이미 존재합니다. 인서트를 생략합니다."
+            )
             return
 
-        for file_name in sorted(files):
+        # 3. 저번 달 파일 필터링
+        try:
             file_path = os.path.join(csv_directory, file_name)
-
             df = pd.read_csv(file_path, encoding="euc-kr")
 
             df = df.fillna("세종특별자치시")
@@ -222,15 +211,16 @@ def load_and_insert_population_data():
 
                 except Exception as e:
                     print(f"Row data: {row}")
+                    print(e)
                     continue
 
-        # 모든 데이터가 성공적으로 삽입된 후에 커밋
-        commit(connection)
+            # 모든 데이터가 성공적으로 삽입된 후에 커밋
+            commit(connection)
 
-    except Exception as e:
-        print(f"Error during population data insertion: {e}")
-    finally:
-        close_connection(connection)
+        except Exception as e:
+            print(f"Error during population data insertion: {e}")
+        finally:
+            close_connection(connection)
 
     # 만약 폴더 내의 마지막 파일만 처리하려면 아래의 코드를 사용합니다:
     # 파일 목록을 정렬하여 가장 마지막 파일을 선택하고, 해당 파일만 처리
@@ -239,3 +229,6 @@ def load_and_insert_population_data():
     # file_path = os.path.join(csv_directory, last_file)
     # df = pd.read_csv(file_path, encoding='euc-kr')
     # 이후 처리 로직은 동일하게 적용됩니다.
+
+if __name__ == "__main__":
+    load_and_insert_population_data("지역별(행정동) 성별 연령별 주민등록 인구수_20240831.csv")

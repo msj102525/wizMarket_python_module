@@ -1,6 +1,6 @@
 # $env:PYTHONPATH = "C:\Users\jyes_dev\Desktop\````\`````\wizMarket_back" # 파이썬 경로 수정, 자기 프로젝트 경로로 수정
 # $env:PYTHONPATH = "C:\Users\jyes_dev\Desktop\doorwinbell\project_wiz\wizMarket_back"
-# $env:PYTHONPATH = "C:\workspace\python\wizMarket_back"
+# $env:PYTHONPATH = "C:\workspace\python\wizMarket_python_module"
 
 # .venv 폴더 있으면 2번째 활성화 코드 부터 실행
 # python -m venv .venv  # 가상 환경 생성
