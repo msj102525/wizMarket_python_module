@@ -1,0 +1,42 @@
+# Python 가상 환경
+.venv/
+.env/
+
+# Python 컴파일 파일
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+
+# IDE/편집기 설정 파일
+.vscode/
+.idea/
+*.swp
+
+# 환경 설정 파일
+.env
+
+# MyPy 설정
+.mypy_cache/
+
+# pytest cache
+.pytest_cache/
+
+# Pyre type checker
+.pyre/
+
+# VS Code 설정
+.settings/
+
+# 기타
+*.log
+*.pot
+*.mo
+*.tmp
+*.bak
+*.orig
+.DS_Store
+
+# Docker 파일
+docker-compose.override.yml
