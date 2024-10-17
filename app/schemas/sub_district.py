@@ -10,3 +10,10 @@ class SubDistrict(BaseModel):
     class Config:
         from_attributes = True
 
+class AllRegionIdOutPut(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+
+    class Config:
+        from_attributes = True
