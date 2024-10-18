@@ -13,52 +13,8 @@ from app.db.connect import (
     rollback,
 )
 
-# 1. 전 지역 ID 값 조회
-def select_all_region_id() -> List[AllRegionIdOutPut]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[AllRegionIdOutPut] = []
 
-    try:
-        if connection.open:
-            select_query = """
-                SELECT
-                    CITY_ID,
-                    DISTRICT_ID,
-                    SUB_DISTRICT_ID
-                FROM
-                    sub_district
-            """
-
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
-
-            for row in rows:
-                all_region_id = AllRegionIdOutPut(
-                    city_id=row.get("CITY_ID"),
-                    district_id=row.get("DISTRICT_ID"),
-                    sub_district_id=row.get("SUB_DISTRICT_ID")
-                )
-                results.append(all_region_id)
-            return results
-        
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
-
-    return results
-
-
-# 2. 지역 별 연령별 인구 조회
+# 1. 지역 별 연령별 인구 조회
 def select_pop_age_by_region(
         city_id:int, district_id:int, sub_district_id:int
 ) -> List[PopAgeByRegionOutPut]:
@@ -75,6 +31,7 @@ def select_pop_age_by_region(
                     DISTRICT_ID,
                     SUB_DISTRICT_ID,
                     GENDER_ID,
+                    REFERENCE_ID,
                     reference_date as REF_DATE,
                     (age_0 + age_1 + age_2 + age_3 + age_4 + age_5 + age_6 + age_7 + age_8 + age_9) AS AGE_UNDER_10s,
                     (age_10 + age_11 + age_12 + age_13 + age_14 + age_15 + age_16 + age_17 + age_18 + age_19) AS AGE_10s,
@@ -107,17 +64,26 @@ def select_pop_age_by_region(
 
             cursor.execute(select_query, (city_id, district_id, sub_district_id))
             temp_list = cursor.fetchall()
+            
 
             # 총 인구수 값 더하기
             rows = []
             for i in range(0, len(temp_list), 2):
                 if i + 1 < len(temp_list):
-                    # 두 항목을 합침
-                    combined_population = temp_list[i]["TOTAL_POPULATION_BY_GENDER"] + temp_list[i + 1]["TOTAL_POPULATION_BY_GENDER"]
-                    # 새 항목 생성 및 total_population 추가
-                    merged_result = temp_list[i].copy()  # 첫 번째 항목을 복사
-                    merged_result["TOTAL_POPULATION"] = combined_population
-                    rows.append(merged_result)
+                    # 남자와 여자의 총 인구수 합산
+                    combined_total = temp_list[i]["TOTAL_POPULATION_BY_GENDER"] + temp_list[i + 1]["TOTAL_POPULATION_BY_GENDER"]
+                    
+                    # 남자 데이터에 합산 값을 추가
+                    male_data = temp_list[i].copy()  # 딕셔너리 복사
+                    male_data["TOTAL_POPULATION"] = combined_total  # 합산 값을 추가
+
+                    # 여자 데이터에 합산 값을 추가
+                    female_data = temp_list[i + 1].copy()  # 딕셔너리 복사
+                    female_data["TOTAL_POPULATION"] = combined_total  # 합산 값을 추가
+                    
+                    # 결과 리스트에 추가
+                    rows.append(male_data)
+                    rows.append(female_data)
 
             for row in rows:
                 pop_age_by_region = PopAgeByRegionOutPut(
@@ -125,6 +91,7 @@ def select_pop_age_by_region(
                     district_id= row.get("DISTRICT_ID"),
                     sub_district_id=row.get("SUB_DISTRICT_ID"),
                     gender_id= row.get("GENDER_ID"),
+                    reference_id = row.get("REFERENCE_ID"),
                     ref_date= row.get("REF_DATE"),
                     age_under_10s= row.get("AGE_UNDER_10s"),
                     age_10s= row.get("AGE_10s"),
@@ -152,3 +119,60 @@ def select_pop_age_by_region(
             close_connection(connection)
 
     return results
+
+
+# 3. 각 지역에 해당하는 연령 별 인구 수 인서트
+def insert_pop_age_by_region(all_pop_age_by_region: List[PopAgeByRegionOutPut]) -> None:
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+    logger = logging.getLogger(__name__)
+
+    try:
+        if connection.open:
+            insert_query = """
+                INSERT INTO population_age (
+                    city_id, district_id, sub_district_id, gender_id, reference_id, ref_date,
+                    age_under_10s, age_10s, age_20s, age_30s, age_40s,
+                    age_50s, age_plus_60s, total_population_by_gender, total_population
+                )
+                VALUES (
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s
+                )
+            """
+
+            # 각 PopAgeByRegionOutPut 객체를 인서트
+            for pop_age in all_pop_age_by_region:
+                cursor.execute(insert_query, (
+                    pop_age.city_id,
+                    pop_age.district_id,
+                    pop_age.sub_district_id,
+                    pop_age.gender_id,
+                    pop_age.reference_id,
+                    pop_age.ref_date,
+                    pop_age.age_under_10s,
+                    pop_age.age_10s,
+                    pop_age.age_20s,
+                    pop_age.age_30s,
+                    pop_age.age_40s,
+                    pop_age.age_50s,
+                    pop_age.age_plus_60s,
+                    pop_age.total_population_by_gender,
+                    pop_age.total_population
+                ))
+
+            # 변경사항 커밋
+            connection.commit()
+
+    except pymysql.MySQLError as e:
+        logger.error(f"MySQL Error: {e}")
+        rollback(connection)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        rollback(connection)
+    finally:
+        if cursor:
+            close_cursor(cursor)
+        if connection:
+            close_connection(connection)

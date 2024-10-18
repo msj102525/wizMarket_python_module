@@ -1,5 +1,9 @@
 import logging
-from app.schemas.sub_district import SubDistrict
+import pymysql
+from typing import List
+from app.schemas.sub_district import (
+    SubDistrict, AllRegionIdOutPut, AllCitySubDistrictIdOutPut, AllDistrictSubDistrictIdOutPut
+)
 from app.db.connect import (
     get_db_connection,
     close_connection,
@@ -184,6 +188,136 @@ def get_sub_district_name_by_sub_district_id(sub_district_id: int) -> str:
         close_cursor(cursor)
         close_connection(connection)
 
+
+# 1. 전 지역 ID 값 조회
+def select_all_region_id() -> List[AllRegionIdOutPut]:
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+    logger = logging.getLogger(__name__)
+    results: List[AllRegionIdOutPut] = []
+
+    try:
+        if connection.open:
+            select_query = """
+                SELECT
+                    CITY_ID,
+                    DISTRICT_ID,
+                    SUB_DISTRICT_ID
+                FROM
+                    sub_district
+            """
+
+            cursor.execute(select_query)
+            rows = cursor.fetchall()
+
+            for row in rows:
+                all_region_id = AllRegionIdOutPut(
+                    city_id=row.get("CITY_ID"),
+                    district_id=row.get("DISTRICT_ID"),
+                    sub_district_id=row.get("SUB_DISTRICT_ID")
+                )
+                results.append(all_region_id)
+            return results
+        
+    except pymysql.MySQLError as e:
+        logger.error(f"MySQL Error: {e}")
+        rollback(connection)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        rollback(connection)
+    finally:
+        if cursor:
+            close_cursor(cursor)
+        if connection:
+            close_connection(connection)
+
+    return results
+
+# 시/도 읍면동 id 페어로 가져오기
+def select_city_id_sub_district_id():
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+    logger = logging.getLogger(__name__)
+    results: List[AllCitySubDistrictIdOutPut] = []
+
+    try:
+        if connection.open:
+            select_query = """
+                SELECT
+                    CITY_ID,
+                    SUB_DISTRICT_ID
+                FROM
+                    sub_district
+            """
+
+            cursor.execute(select_query)
+            rows = cursor.fetchall()
+
+            for row in rows:
+                all_region_id = AllCitySubDistrictIdOutPut(
+                    city_id=row.get("CITY_ID"),
+                    sub_district_id=row.get("SUB_DISTRICT_ID")
+                )
+                results.append(all_region_id)
+            return results
+        
+    except pymysql.MySQLError as e:
+        logger.error(f"MySQL Error: {e}")
+        rollback(connection)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        rollback(connection)
+    finally:
+        if cursor:
+            close_cursor(cursor)
+        if connection:
+            close_connection(connection)
+
+    return results
+
+
+# 시/군/구 읍면동 id 페어로 가져오기
+def select_district_id_sub_district_id():
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+    logger = logging.getLogger(__name__)
+    results: List[AllDistrictSubDistrictIdOutPut] = []
+
+    try:
+        if connection.open:
+            select_query = """
+                SELECT
+                    DISTRICT_ID,
+                    SUB_DISTRICT_ID
+                FROM
+                    sub_district
+            """
+
+            cursor.execute(select_query)
+            rows = cursor.fetchall()
+
+            for row in rows:
+                all_region_id = AllDistrictSubDistrictIdOutPut(
+                    district_id=row.get("DISTRICT_ID"),
+                    sub_district_id=row.get("SUB_DISTRICT_ID")
+                )
+                results.append(all_region_id)
+            return results
+        
+    except pymysql.MySQLError as e:
+        logger.error(f"MySQL Error: {e}")
+        rollback(connection)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        rollback(connection)
+    finally:
+        if cursor:
+            close_cursor(cursor)
+        if connection:
+            close_connection(connection)
+
+    return results
+    
 
 # if __name__ == "__main__":
 #     print(get_or_create_sub_district_id(1, 1, "강남동"))

@@ -27,8 +27,9 @@ class PopulationAge(BaseModel):
 class PopAgeByRegionOutPut(BaseModel):
     city_id: int
     district_id: int
-    sub_district_id: Optional[int]
+    sub_district_id: int
     gender_id: int
+    reference_id: int
     ref_date: date
     age_under_10s: int
     age_10s: int

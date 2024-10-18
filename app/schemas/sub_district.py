@@ -17,3 +17,18 @@ class AllRegionIdOutPut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AllCitySubDistrictIdOutPut(BaseModel):
+    city_id: int
+    sub_district_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class AllDistrictSubDistrictIdOutPut(BaseModel):
+    district_id: int
+    sub_district_id: int
+
+    class Config:
+        from_attributes = True
