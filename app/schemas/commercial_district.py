@@ -233,3 +233,44 @@ class CommercialStatisticsOutput(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+#################################
+
+
+class CommercialDistrictStatisticsBase(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    biz_detail_category_id: int
+    column_name: float
+
+    class Config:
+        from_attributes = True
+
+
+class CommercialDistrictJScoreOutput(CommercialDistrictInsert):
+    j_score: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CommercialDistrictStatistics(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    biz_main_category_id: int
+    biz_sub_category_id: int
+    biz_detail_category_id: int
+    avg_val: float
+    med_val: float
+    std_val: float
+    max_val: float
+    min_val: float
+    j_score: float
+    stat_level: str
+    ref_date: str
+
+    class Config:
+        from_attributes = True

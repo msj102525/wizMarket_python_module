@@ -378,5 +378,34 @@ def select_biz_detail_category_id_by_biz_detail_category_name(
             close_connection(connection)
 
 
-# if __name__ == "__main__":
-#     select_all_biz_detail_category_id()
+def select_all_category_id_by_biz_detail_category_id(detail_category_id: int) -> str:
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        select_query = """
+        SELECT 
+            bmc.BIZ_MAIN_CATEGORY_ID,
+            bsc.BIZ_SUB_CATEGORY_ID
+        FROM
+            biz_detail_category bdc
+        JOIN biz_sub_category bsc ON bsc.BIZ_SUB_CATEGORY_ID = bdc.BIZ_SUB_CATEGORY_ID
+        JOIN biz_main_category bmc ON bmc.BIZ_MAIN_CATEGORY_ID = bsc.BIZ_MAIN_CATEGORY_ID
+        WHERE bdc.BIZ_DETAIL_CATEGORY_ID = %s;
+        """
+        cursor.execute(select_query, (detail_category_id,))
+        result = cursor.fetchone()
+
+        # print(result)
+
+        return result
+    except Exception as e:
+        rollback(connection)
+        print(f"Can't get_detail_category_name:{e}")
+    finally:
+        close_cursor(cursor)
+        close_connection(connection)
+
+
+if __name__ == "__main__":
+    select_all_category_id_by_biz_detail_category_id(337)
