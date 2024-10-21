@@ -5,7 +5,7 @@ from pymysql import OperationalError, InternalError, ProgrammingError, Error
 
 load_dotenv()
 
-
+# Source DB
 def get_db_connection():
     connection = None
     try:
@@ -53,6 +53,43 @@ def get_report_db_connection(is_dev=False):
             autocommit=False,
         )
         # print("ReportDB Database connection established successfully.")
+    except OperationalError as e:
+        print(f"OperationalError: {e}")
+    except InternalError as e:
+        print(f"InternalError: {e}")
+    except ProgrammingError as e:
+        print(f"ProgrammingError: {e}")
+    except Error as e:
+        print(f"Error: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+    return connection
+
+
+def get_service_report_db_connection(is_dev=True):
+    connection = None
+    try:
+        # 개발 모드 또는 배포 모드에 따라 다른 환경 변수 사용
+        if is_dev:
+            host = os.getenv("SERVICE_REPORT_DB_HOST_DEV")
+            user = os.getenv("SERVICE_REPORT_DB_USER_DEV")
+            password = os.getenv("SERVICE_REPORT_DB_PASSWORD_DEV")
+            database = os.getenv("SERVICE_REPORT_DB_DATABASE_DEV")
+        else:
+            # host = os.getenv("REPORT_DB_HOST_DEP")
+            # user = os.getenv("REPORT_DB_USER_DEP")
+            # password = os.getenv("REPORT_DB_PASSWORD_DEP")
+            # database = os.getenv("REPORT_DB_DATABASE_DEP")
+            pass
+
+        connection = pymysql.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database,
+            autocommit=False,
+        )
+        # print("Service Report Database connection established successfully.")
     except OperationalError as e:
         print(f"OperationalError: {e}")
     except InternalError as e:
