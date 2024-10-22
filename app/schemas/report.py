@@ -151,3 +151,31 @@ class LocalStoreTop5Menu(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 매장별 읍/면/동 id 조회
+class LocalStoreSubdistrictId(BaseModel):
+    store_business_number: str
+    sub_district_id: int
+
+    class Config:
+        from_attributes = True
+
+
+# 매장별 읍/면/동 id 조회
+class LocalStorePopulationData(BaseModel):
+    store_business_number: str
+    population_total: int
+    population_male_percent: float
+    population_female_percent: float
+    population_age_10_under: int
+    population_age_10s: int
+    population_age_20s: int
+    population_age_30s: int
+    population_age_40s: int
+    population_age_50s: int
+    population_age_60_over: int
+    population_date_ref_date: date
+
+    class Config:
+        from_attributes = True
