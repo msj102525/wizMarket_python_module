@@ -13,6 +13,7 @@ from app.schemas.report import (
     LocalStoreBasicInfo,
     LocalStoreLocInfoData,
     LocalStoreLocInfoJscoreData,
+    LocalStoreMainCategoryCount,
     LocalStoreMappingRepId,
     LocalStoreMovePopData,
     LocalStorePopulationData,
@@ -102,7 +103,8 @@ def select_local_store_rep_id() -> List[LocalStoreMappingRepId]:
                     FROM LOCAL_STORE LS
                     JOIN BUSINESS_AREA_CATEGORY BAC ON BAC.DETAIL_CATEGORY_NAME = LS.SMALL_CATEGORY_NAME
                     JOIN DETAIL_CATEGORY_MAPPING DCM ON DCM.BUSINESS_AREA_CATEGORY_ID = BAC.BUSINESS_AREA_CATEGORY_ID
-                ;"""
+                ;
+                """
 
                 cursor.execute(select_query)
                 rows = cursor.fetchall()
@@ -465,79 +467,104 @@ def select_local_store_loc_info_data(
 
 
 ##################### 입지분석 J_SCORE 데이터 ##############################
-def select_local_store_loc_info_data(
+def select_local_store_loc_info_j_score_data(
     batch: List[LocalStoreSubdistrictId],
-) -> List[LocalStoreLocInfoData]:
+) -> List[LocalStoreLocInfoJscoreData]:
     logger = logging.getLogger(__name__)
     results = []
 
     try:
         with get_db_connection() as connection:
-            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-                # sub_district_id 리스트 생성
-                sub_district_ids = [store_info.sub_district_id for store_info in batch]
+            cursor = connection.cursor(pymysql.cursors.DictCursor)
+            cursor2 = connection.cursor(pymysql.cursors.DictCursor)
 
-                # IN 절을 사용하여 한 번에 조회
-                select_query = """
-                    SELECT
-                        SUB_DISTRICT_ID,
-                        RESIDENT,
-                        WORK_POP,
-                        MOVE_POP,
-                        SHOP,
-                        INCOME,
-                        Y_M
-                    FROM LOC_INFO
-                    WHERE SUB_DISTRICT_ID IN (%s)
-                    AND Y_M = (SELECT MAX(Y_M) FROM LOC_INFO)
-                ;
-                """
-                # IN 절 파라미터 생성
-                in_params = ",".join(["%s"] * len(sub_district_ids))
-                query = select_query % (in_params)
+            # sub_district_id 리스트 생성
+            sub_district_ids = [store_info.sub_district_id for store_info in batch]
 
-                cursor.execute(
-                    query, sub_district_ids
-                )  # sub_district_ids를 한 번만 사용
+            # loc_info 통계 조회
+            loc_select_query = """
+                SELECT
+                    SUB_DISTRICT_ID,
+                    TARGET_ITEM,
+                    J_SCORE
+                FROM LOC_INFO_STATISTICS
+                WHERE SUB_DISTRICT_ID IN (%s)
+                AND STAT_LEVEL = '전국'
+                AND REF_DATE = (SELECT MAX(REF_DATE) FROM LOC_INFO_STATISTICS)
+            ;
+            """
+            in_params = ",".join(["%s"] * len(sub_district_ids))
+            loc_query = loc_select_query % (in_params)
 
-                rows = cursor.fetchall()
+            cursor.execute(loc_query, sub_district_ids)
+            loc_rows = cursor.fetchall()
 
-                # sub_district_id를 키로 하는 딕셔너리 생성
-                loc_info_dict = {
-                    row["SUB_DISTRICT_ID"]: row for row in rows
-                }  # 딕셔너리에 SUB_DISTRICT_ID 포함
+            # loc_info 점수 딕셔너리 생성
+            loc_info_j_score_dict = {
+                (row["SUB_DISTRICT_ID"], row["TARGET_ITEM"]): row["J_SCORE"]
+                for row in loc_rows
+            }
 
-                # batch의 순서를 유지하면서 결과 생성
-                for store_info in batch:
-                    if store_info.sub_district_id in loc_info_dict:
-                        loc_info_data = loc_info_dict[store_info.sub_district_id]
+            # population mz 통계 조회
+            pop_select_query = """
+                SELECT
+                    SUB_DISTRICT_ID,
+                    J_SCORE
+                FROM POPULATION_INFO_MZ_STATISTICS
+                WHERE SUB_DISTRICT_ID IN (%s)
+                AND STAT_LEVEL = '전국'
+                AND REF_DATE = (SELECT MAX(REF_DATE) FROM POPULATION_INFO_MZ_STATISTICS)
+            ;
+            """
+            pop_query = pop_select_query % (in_params)
+            cursor2.execute(pop_query, sub_district_ids)
+            pop_rows = cursor2.fetchall()
 
-                        results.append(
-                            LocalStoreLocInfoData(
-                                store_business_number=store_info.store_business_number,
-                                loc_info_resident_k=round(
-                                    (loc_info_data["RESIDENT"] or 0) / 1000, 1
-                                ),
-                                loc_info_work_pop_k=round(
-                                    (loc_info_data["WORK_POP"] or 0) / 1000, 1
-                                ),
-                                loc_info_move_pop_k=round(
-                                    (loc_info_data["MOVE_POP"] or 0) / 1000, 1
-                                ),
-                                loc_info_shop_k=round(
-                                    (loc_info_data["SHOP"] or 0) / 1000, 1
-                                ),
-                                income_won=round(
-                                    (loc_info_data["INCOME"] or 0) / 10000
-                                ),
-                                loc_info_data_ref_date=loc_info_data["Y_M"],
-                            )
-                        )
+            # pop_info 점수 딕셔너리 생성
+            pop_info_j_score_dict = {
+                row["SUB_DISTRICT_ID"]: row["J_SCORE"] for row in pop_rows
+            }
 
-                return results
+            # 결과 생성
+            for store_info in batch:
+                sub_district_id = store_info.sub_district_id
+                results.append(
+                    LocalStoreLocInfoJscoreData(
+                        store_business_number=store_info.store_business_number,
+                        loc_info_resident_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "resident"), 0.0
+                        ),
+                        loc_info_work_pop_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "work_pop"), 0.0
+                        ),
+                        loc_info_move_pop_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "move_pop"), 0.0
+                        ),
+                        loc_info_shop_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "shop"), 0.0
+                        ),
+                        loc_info_income_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "income"), 0.0
+                        ),
+                        loc_info_average_spend_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "spend"), 0.0
+                        ),
+                        loc_info_average_sales_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "sales"), 0.0
+                        ),
+                        loc_info_house_j_score=loc_info_j_score_dict.get(
+                            (sub_district_id, "house"), 0.0
+                        ),
+                        population_mz_population_j_score=pop_info_j_score_dict.get(
+                            sub_district_id, 0.0
+                        ),
+                    )
+                )
+
+            return results
 
     except Exception as e:
-        logger.error(f"loc_info data 가져오는 중 오류 발생: {e}")
+        logger.error(f"loc_info_j_score data 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -695,6 +722,78 @@ def select_local_store_loc_info_move_pop_data(
 
     except Exception as e:
         logger.error(f"loc_info_move_pop data 가져오는 중 오류 발생: {e}")
+        raise
+
+
+##################### 상권분석 읍/면/동 대분류 갯수 ##############################
+def select_commercial_district_main_detail_category_count_data(
+    batch: List[LocalStoreSubdistrictId],
+) -> List[LocalStoreMainCategoryCount]:
+    logger = logging.getLogger(__name__)
+    results = []
+    try:
+        with get_db_connection() as connection:
+            cursor = connection.cursor(pymysql.cursors.DictCursor)
+            # sub_district_id 리스트 생성
+            sub_district_ids = [store_info.sub_district_id for store_info in batch]
+            # IN 절을 사용하여 한 번에 조회
+            select_query = """
+                SELECT
+                    SUB_DISTRICT_ID,
+                    BIZ_MAIN_CATEGORY_ID,
+                    COUNT(BIZ_MAIN_CATEGORY_ID) as category_count
+                FROM
+                    COMMERCIAL_DISTRICT
+                WHERE SUB_DISTRICT_ID IN (%s)
+                AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                GROUP BY SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID
+                ;
+            """
+            # IN 절 파라미터 생성
+            in_params = ",".join(["%s"] * len(sub_district_ids))
+            query = select_query % (in_params)
+            cursor.execute(query, sub_district_ids)
+            rows = cursor.fetchall()
+
+            # sub_district_id별로 카테고리 카운트를 정리하는 딕셔너리
+            category_counts = {}
+
+            # 결과를 정리
+            for row in rows:
+                sub_district_id = row["SUB_DISTRICT_ID"]
+                if sub_district_id not in category_counts:
+                    category_counts[sub_district_id] = {
+                        1: 0,  # food
+                        3: 0,  # retail
+                        4: 0,  # lifestyle
+                        5: 0,  # entertainment
+                        6: 0,  # education
+                        7: 0,  # healthcare
+                    }
+                category_counts[sub_district_id][row["BIZ_MAIN_CATEGORY_ID"]] = row[
+                    "category_count"
+                ]
+
+            # batch의 순서를 유지하면서 결과 생성
+            for store_info in batch:
+                counts = category_counts.get(store_info.sub_district_id, {})
+                results.append(
+                    LocalStoreMainCategoryCount(
+                        store_business_number=store_info.store_business_number,
+                        commercial_district_food_business_count=counts.get(1, 0),
+                        commercial_district_retail_business_count=counts.get(3, 0),
+                        commercial_district_lifestyle_business_count=counts.get(4, 0),
+                        commercial_district_entertainment_business_count=counts.get(
+                            5, 0
+                        ),
+                        commercial_district_education_business_count=counts.get(6, 0),
+                        commercial_district_healthcare_business_count=counts.get(7, 0),
+                    )
+                )
+            return results
+
+    except Exception as e:
+        logger.error(f"commercial district count data 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -1031,4 +1130,51 @@ def insert_or_update_loc_info_move_pop_data_batch(
 
     except Exception as e:
         logging.error(f"Error inserting/updating loc info move_pop data: {e}")
+        raise
+
+
+# 매장 읍/면/동 입지 정보 J_SCORE 넣기
+def insert_or_update_commercial_district_main_category_count_data_batch(
+    batch: List[LocalStoreLocInfoData],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        COMMERCIAL_DISTRICT_FOOD_BUSINESS_COUNT, 
+                        COMMERCIAL_DISTRICT_HEALTHCARE_BUSINESS_COUNT,
+                        COMMERCIAL_DISTRICT_EDUCATION_BUSINESS_COUNT, 
+                        COMMERCIAL_DISTRICT_ENTERTAINMENT_BUSINESS_COUNT,
+                        COMMERCIAL_DISTRICT_LIFESTYLE_BUSINESS_COUNT,
+                        COMMERCIAL_DISTRICT_RETAIL_BUSINESS_COUNT
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        COMMERCIAL_DISTRICT_FOOD_BUSINESS_COUNT = VALUES(COMMERCIAL_DISTRICT_FOOD_BUSINESS_COUNT),
+                        COMMERCIAL_DISTRICT_HEALTHCARE_BUSINESS_COUNT = VALUES(COMMERCIAL_DISTRICT_HEALTHCARE_BUSINESS_COUNT),
+                        COMMERCIAL_DISTRICT_EDUCATION_BUSINESS_COUNT = VALUES(COMMERCIAL_DISTRICT_EDUCATION_BUSINESS_COUNT),
+                        COMMERCIAL_DISTRICT_ENTERTAINMENT_BUSINESS_COUNT = VALUES(COMMERCIAL_DISTRICT_ENTERTAINMENT_BUSINESS_COUNT),
+                        COMMERCIAL_DISTRICT_LIFESTYLE_BUSINESS_COUNT = VALUES(COMMERCIAL_DISTRICT_LIFESTYLE_BUSINESS_COUNT),
+                        COMMERCIAL_DISTRICT_RETAIL_BUSINESS_COUNT = VALUES(COMMERCIAL_DISTRICT_RETAIL_BUSINESS_COUNT)
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.commercial_district_food_business_count,
+                        store_info.commercial_district_healthcare_business_count,
+                        store_info.commercial_district_education_business_count,
+                        store_info.commercial_district_entertainment_business_count,
+                        store_info.commercial_district_lifestyle_business_count,
+                        store_info.commercial_district_retail_business_count,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(f"Error inserting/updating loc info j_score data: {e}")
         raise

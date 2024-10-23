@@ -232,3 +232,18 @@ class LocalStoreMovePopData(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 상권분석 읍/면/동 대분류 갯수
+class LocalStoreMainCategoryCount(BaseModel):
+    store_business_number: str
+    commercial_district_food_business_count: int
+    commercial_district_healthcare_business_count: int
+    commercial_district_education_business_count: int
+    commercial_district_entertainment_business_count: int
+    commercial_district_lifestyle_business_count: int
+    commercial_district_retail_business_count: int
+
+    class Config:
+        from_attributes = True
+

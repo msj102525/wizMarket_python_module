@@ -22,12 +22,15 @@ from app.crud.report import (
     insert_or_update_loc_info_resident_work_pop_data_batch as crud_insert_or_update_loc_info_resident_work_pop_data_batch,
     select_local_store_loc_info_move_pop_data as crud_select_local_store_loc_info_move_pop_data,
     insert_or_update_loc_info_move_pop_data_batch as crud_insert_or_update_loc_info_move_pop_data_batch,
+    select_commercial_district_main_detail_category_count_data as crud_select_commercial_district_main_detail_category_count_data,
+    insert_or_update_commercial_district_main_category_count_data_batch as crud_insert_or_update_commercial_district_main_category_count_data_batch,
 )
 from app.db.connect import get_db_connection
 from app.schemas.report import (
     LocalStoreBasicInfo,
     LocalStoreLocInfoData,
     LocalStoreLocInfoJscoreData,
+    LocalStoreMainCategoryCount,
     LocalStoreMappingRepId,
     LocalStoreMovePopData,
     LocalStorePopulationData,
@@ -63,7 +66,9 @@ def insert_or_update_local_store_info_thread(
             )
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting local_store batches",
         ):
             future.result()
 
@@ -88,7 +93,7 @@ def insert_or_update_local_store_top5_menu_thread(
             futures.append(executor.submit(crud_insert_or_update_top5_batch, batch))
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures), total=len(futures), desc="Inserting top5 batches"
         ):
             future.result()
 
@@ -142,7 +147,9 @@ def insert_or_update_local_store_population_data_thread(
             )
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting population batches",
         ):
             future.result()
 
@@ -176,7 +183,7 @@ def insert_or_update_local_store_loc_info_data_thread(
             )
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures), total=len(futures), desc="Inserting loc_info batches"
         ):
             future.result()
 
@@ -239,7 +246,9 @@ def insert_or_update_local_store_loc_info_j_score_data_thread(
             )
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting loc_info j_score batches",
         ):
             future.result()
 
@@ -306,7 +315,9 @@ def insert_or_update_local_store_loc_info_resident_work_pop_data_thread(
             )
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting resident work_pop batches",
         ):
             future.result()
 
@@ -377,7 +388,7 @@ def insert_or_update_local_store_loc_info_move_pop_data_thread(
             )
 
         for future in tqdm(
-            as_completed(futures), total=len(futures), desc="Inserting batches"
+            as_completed(futures), total=len(futures), desc="Inserting move_pop batches"
         ):
             future.result()
 
@@ -426,7 +437,84 @@ def insert_or_update_local_store_loc_info_move_pop_data():
 
 
 #################################################################################
+# 상권분석 J_Score 가중치
 
+#################################################################################
+
+
+# 상권 분석 대분류 갯수
+def insert_or_update_commercial_district_main_detail_category_count_data_thread(
+    store_loc_info_cd_mc_count_data_list: List[LocalStoreMainCategoryCount],
+    batch_size: int = 5000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_cd_mc_count_data_list), batch_size):
+            batch = store_loc_info_cd_mc_count_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_insert_or_update_commercial_district_main_category_count_data_batch,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting cd main_category batches",
+        ):
+            future.result()
+
+
+def select_commercial_district_main_detail_category_count_thread(
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
+    batch_size: int = 5000,
+) -> List[LocalStoreMainCategoryCount]:
+    results = []
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_select_commercial_district_main_detail_category_count_data,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="SELECT LOC_INFO_move_pop batches",
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_commercial_district_main_detail_category_count_data():
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId] = (
+        crud_select_local_store_sub_district_id()
+    )
+    commercial_district_main_detail_category_count_list = (
+        select_commercial_district_main_detail_category_count_thread(
+            local_store_sub_district_id_list
+        )
+    )
+    # print(len(commercial_district_main_detail_category_count_list))
+    # print(commercial_district_main_detail_category_count_list[1])
+    insert_or_update_commercial_district_main_detail_category_count_data_thread(
+        commercial_district_main_detail_category_count_list
+    )
+
+
+#################################################################################
 
 if __name__ == "__main__":
     # insert_or_update_local_store_info()  # 438.92 seconds
@@ -435,6 +523,7 @@ if __name__ == "__main__":
     # insert_or_update_local_store_loc_info_data()  # 284.88 seconds 125000건 정도 데이터 빔
     # insert_or_update_local_store_loc_info_j_score_data()  #  325.95
     # insert_or_update_local_store_loc_info_resident_work_pop_data()  #  311.09
-    insert_or_update_local_store_loc_info_move_pop_data()  #  311.09
+    # insert_or_update_local_store_loc_info_move_pop_data()  #  315.91
+    insert_or_update_commercial_district_main_detail_category_count_data()  #  329.36
 
     print("END!!!!!!!!!!!!!!!")
