@@ -222,3 +222,13 @@ class LocalStoreResidentWorkPopData(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 읍/면/동 입지정보 유동인구, 시/도 평균 유동인구
+class LocalStoreMovePopData(BaseModel):
+    store_business_number: str
+    loc_info_move_pop: int
+    loc_info_city_move_pop: int
+
+    class Config:
+        from_attributes = True
