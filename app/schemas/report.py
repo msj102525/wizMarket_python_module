@@ -179,3 +179,46 @@ class LocalStorePopulationData(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 매장별 입지정보
+class LocalStoreLocInfoData(BaseModel):
+    store_business_number: str
+    loc_info_resident_k: Optional[float] = 0.0
+    loc_info_work_pop_k: Optional[float] = 0.0
+    loc_info_move_pop_k: Optional[float] = 0.0
+    loc_info_shop_k: Optional[float] = 0.0
+    loc_info_income_won: Optional[int] = 0
+    loc_info_data_ref_date: date
+
+    class Config:
+        from_attributes = True
+
+
+# 매장별 입지정보 J_Score
+class LocalStoreLocInfoJscoreData(BaseModel):
+    store_business_number: str
+    loc_info_resident_j_score: float
+    loc_info_work_pop_j_score: float
+    loc_info_move_pop_j_score: float
+    loc_info_shop_j_score: float
+    loc_info_income_j_score: float
+    loc_info_average_spend_j_score: float
+    loc_info_average_sales_j_score: float
+    loc_info_house_j_score: float
+    population_mz_population_j_score: float
+
+    class Config:
+        from_attributes = True
+
+
+# 읍/면/동 입지정보 주거인구/직장인구
+class LocalStoreResidentWorkPopData(BaseModel):
+    store_business_number: str
+    loc_info_resident: int
+    loc_info_work_pop: int
+    loc_info_resident_percent: float
+    loc_info_work_pop_percent: float
+
+    class Config:
+        from_attributes = True

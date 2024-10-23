@@ -7,17 +7,25 @@ import time  # 내장 time 모듈을 가져옵니다.
 from typing import Any, Callable, List
 from app.crud.report import (
     select_local_store_info as crud_select_local_store_info,
+    select_local_store_top5_menus as crud_select_local_store_top5_menus,
     insert_or_update_top5_batch as crud_insert_or_update_top5_batch,
     select_local_store_population_data as crud_select_local_store_population_data,
     insert_or_update_population_data_batch as crud_insert_or_update_population_data_batch,
     select_local_store_rep_id as crud_select_local_store_rep_id,
     insert_or_update_store_info_batch as crud_insert_or_update_store_info_batch,
     select_local_store_sub_district_id as crud_select_local_store_sub_district_id,
-    select_local_store_top5_menus,
+    select_local_store_loc_info_data as crud_select_local_store_loc_info_data,
+    insert_or_update_loc_info_data_batch as crud_insert_or_update_loc_info_data_batch,
+    select_local_store_loc_info_j_score_data as crud_select_local_store_loc_info_j_score_data,
+    insert_or_update_loc_info_j_score_data_batch as crud_insert_or_update_loc_info_j_score_data_batch,
+    select_local_store_loc_info_resident_work_pop_data as crud_select_local_store_loc_info_resident_work_pop_data,
+    insert_or_update_loc_info_resident_work_pop_data_batch as crud_insert_or_update_loc_info_resident_work_pop_data_batch,
 )
 from app.db.connect import get_db_connection
 from app.schemas.report import (
     LocalStoreBasicInfo,
+    LocalStoreLocInfoData,
+    LocalStoreLocInfoJscoreData,
     LocalStoreMappingRepId,
     LocalStorePopulationData,
     LocalStoreSubdistrictId,
@@ -82,21 +90,6 @@ def insert_or_update_local_store_top5_menu_thread(
             future.result()
 
 
-# thread_local = local()
-
-
-# @contextmanager
-# def get_thread_db_connection():
-#     """Thread-safe database connection manager"""
-#     if not hasattr(thread_local, "connection"):
-#         thread_local.connection = get_db_connection()
-#     try:
-#         yield thread_local.connection
-#     except Exception as e:
-#         thread_local.connection.rollback()
-#         raise e
-
-
 def select_local_store_top5_menus_thread(
     local_store_rep_id_list: List[LocalStoreMappingRepId], batch_size: int = 5000
 ) -> List[LocalStoreTop5Menu]:
@@ -105,7 +98,7 @@ def select_local_store_top5_menus_thread(
         futures = []
         for i in range(0, len(local_store_rep_id_list), batch_size):
             batch = local_store_rep_id_list[i : i + batch_size]
-            futures.append(executor.submit(select_local_store_top5_menus, batch))
+            futures.append(executor.submit(crud_select_local_store_top5_menus, batch))
 
         for future in tqdm(
             as_completed(futures), total=len(futures), desc="SELECT TOP5 batches"
@@ -156,11 +149,9 @@ def insert_or_update_local_store_population_data():
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId] = (
         crud_select_local_store_sub_district_id()
     )
-    # print(local_store_sub_district_id_list[1])
     local_store_population_data_list = crud_select_local_store_population_data(
         local_store_sub_district_id_list
     )
-    # print(local_store_population_data_list[1])
     insert_or_update_local_store_population_data_thread(
         local_store_population_data_list
     )
@@ -168,8 +159,211 @@ def insert_or_update_local_store_population_data():
 
 #################################################################################
 
+
+# 입지분석 데이터 주거인구, 직장인구, 유동인구, 업소수, 소득
+def insert_or_update_local_store_loc_info_data_thread(
+    store_loc_info_data_list: List[LocalStoreLocInfoData], batch_size: int = 5000
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_data_list), batch_size):
+            batch = store_loc_info_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(crud_insert_or_update_loc_info_data_batch, batch)
+            )
+
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Inserting batches"
+        ):
+            future.result()
+
+
+def select_local_store_loc_info_thread(
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
+    batch_size: int = 5000,
+) -> List[LocalStoreLocInfoData]:
+    results = []
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(crud_select_local_store_loc_info_data, batch)
+            )
+
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="SELECT LOC_INFO batches"
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_local_store_loc_info_data():
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId] = (
+        crud_select_local_store_sub_district_id()
+    )
+    local_store_loc_info_list = select_local_store_loc_info_thread(
+        local_store_sub_district_id_list
+    )
+    # print(len(local_store_loc_info_list))
+    # print(local_store_loc_info_list[1])
+    insert_or_update_local_store_loc_info_data_thread(local_store_loc_info_list)
+
+
+#################################################################################
+
+
+# 입지분석 데이터 주거인구, 직장인구, 유동인구, 업소수, 소득, mz인구, 평균 소비, 평균 소득, 매장 평균 매출 JSCORE
+def insert_or_update_local_store_loc_info_j_score_data_thread(
+    store_loc_info_j_score_data_list: List[LocalStoreLocInfoJscoreData],
+    batch_size: int = 5000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_j_score_data_list), batch_size):
+            batch = store_loc_info_j_score_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_insert_or_update_loc_info_j_score_data_batch, batch
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Inserting batches"
+        ):
+            future.result()
+
+
+def select_local_store_loc_info_j_score_thread(
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
+    batch_size: int = 5000,
+) -> List[LocalStoreLocInfoData]:
+    results = []
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(crud_select_local_store_loc_info_j_score_data, batch)
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="SELECT LOC_INFO_j_score batches",
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_local_store_loc_info_j_score_data():
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId] = (
+        crud_select_local_store_sub_district_id()
+    )
+    local_store_loc_info_j_score_list = select_local_store_loc_info_j_score_thread(
+        local_store_sub_district_id_list
+    )
+    # print(len(local_store_loc_info_j_score_list))
+    print(local_store_loc_info_j_score_list[1])
+    insert_or_update_local_store_loc_info_j_score_data_thread(
+        local_store_loc_info_j_score_list
+    )
+
+
+#################################################################################
+
+
+# 입지분석 주거인구, 직장인구, 수/비율
+def insert_or_update_local_store_loc_info_resident_work_pop_data_thread(
+    store_loc_info_resident_work_pop_data_list: List[LocalStoreLocInfoData],
+    batch_size: int = 5000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_resident_work_pop_data_list), batch_size):
+            batch = store_loc_info_resident_work_pop_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_insert_or_update_loc_info_resident_work_pop_data_batch, batch
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures), total=len(futures), desc="Inserting batches"
+        ):
+            future.result()
+
+
+def select_local_store_loc_info_resident_work_pop_thread(
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
+    batch_size: int = 5000,
+) -> List[LocalStoreLocInfoData]:
+    results = []
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_select_local_store_loc_info_resident_work_pop_data, batch
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="SELECT LOC_INFO_resident_work_pop batches",
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_local_store_loc_info_resident_work_pop_data():
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId] = (
+        crud_select_local_store_sub_district_id()
+    )
+    local_store_loc_info_resident_work_pop_list = (
+        select_local_store_loc_info_resident_work_pop_thread(
+            local_store_sub_district_id_list
+        )
+    )
+    print(len(local_store_loc_info_resident_work_pop_list))
+    print(local_store_loc_info_resident_work_pop_list[1])
+    insert_or_update_local_store_loc_info_resident_work_pop_data_thread(
+        local_store_loc_info_resident_work_pop_list
+    )
+
+
+#################################################################################
+
+
 if __name__ == "__main__":
     # insert_or_update_local_store_info()  # 438.92 seconds
     # insert_or_update_local_store_top5_menu()  # 2916.64 seconds / 57.32 seconds
     # insert_or_update_local_store_population_data()  # 281.83 seconds
+    # insert_or_update_local_store_loc_info_data()  # 284.88 seconds 125000건 정도 데이터 빔
+    # insert_or_update_local_store_loc_info_j_score_data()  #  325.95
+    insert_or_update_local_store_loc_info_resident_work_pop_data()  #  311.09
+
     print("END!!!!!!!!!!!!!!!")
