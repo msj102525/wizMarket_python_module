@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.schemas.loc_info import LocationInfoReportOutput
-from app.schemas.statistics import LocStatisticsOutput
+from app.schemas.statistics_mod import LocStatisticsOutput
 
 
 class Population(BaseModel):

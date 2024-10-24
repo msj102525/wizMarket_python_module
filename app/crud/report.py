@@ -1,5 +1,7 @@
+from collections import defaultdict
 import logging
-from typing import List
+from statistics import mean
+from typing import Dict, List
 import pymysql
 from tqdm import tqdm
 
@@ -11,9 +13,11 @@ from app.db.connect import (
 )
 from app.schemas.report import (
     LocalStoreBasicInfo,
+    LocalStoreCommercialDistrictJscoreAverage,
     LocalStoreLocInfoData,
     LocalStoreLocInfoJscoreData,
     LocalStoreMainCategoryCount,
+    LocalStoreMappingSubDistrictDetailCategoryId,
     LocalStoreMappingRepId,
     LocalStoreMovePopData,
     LocalStorePopulationData,
@@ -83,7 +87,7 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                 return results
 
     except Exception as e:
-        logger.error(f"Error fetching statistics data: {e}")
+        logger.error(f"Error LocalStoreBasicInfo data: {e}")
         raise
 
 
@@ -98,11 +102,13 @@ def select_local_store_rep_id() -> List[LocalStoreMappingRepId]:
             with connection.cursor(pymysql.cursors.DictCursor) as cursor:
                 select_query = """
                     SELECT DISTINCT
-                        DCM.REP_ID,
-                        LS.STORE_BUSINESS_NUMBER
+                        LS.STORE_BUSINESS_NUMBER,
+                        LS.SUB_DISTRICT_ID,
+                        DCM.REP_ID
                     FROM LOCAL_STORE LS
                     JOIN BUSINESS_AREA_CATEGORY BAC ON BAC.DETAIL_CATEGORY_NAME = LS.SMALL_CATEGORY_NAME
                     JOIN DETAIL_CATEGORY_MAPPING DCM ON DCM.BUSINESS_AREA_CATEGORY_ID = BAC.BUSINESS_AREA_CATEGORY_ID
+                    WHERE LS.SUB_DISTRICT_ID IS NOT NULL
                 ;
                 """
 
@@ -115,6 +121,7 @@ def select_local_store_rep_id() -> List[LocalStoreMappingRepId]:
                         result.append(
                             LocalStoreMappingRepId(
                                 store_business_number=row["STORE_BUSINESS_NUMBER"],
+                                sub_district_id=row["SUB_DISTRICT_ID"],
                                 rep_id=row["REP_ID"],
                             )
                         )
@@ -122,7 +129,7 @@ def select_local_store_rep_id() -> List[LocalStoreMappingRepId]:
                 return result
 
     except Exception as e:
-        logger.error(f"대표 ID를 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreMappingRepId 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -193,7 +200,7 @@ def select_local_store_top5_menus(
             return results
 
     except Exception as e:
-        logger.error(f"Top 5 메뉴를 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreTop5Menu 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -236,7 +243,7 @@ def select_local_store_sub_district_id(
             return results
 
     except Exception as e:
-        logger.error(f"Error fetching statistics data: {e}")
+        logger.error(f"Error LocalStoreSubdistrictId data: {e}")
         raise
 
 
@@ -278,13 +285,12 @@ def get_population_data_for_multiple_ids(sub_district_ids: List[int]):
                 return cursor.fetchall()
 
     except Exception as e:
-        logger.error(
-            f"Error fetching population data for sub_district_ids {sub_district_ids}: {e}"
-        )
+        logger.error(f"population data for sub_district_ids {sub_district_ids}: {e}")
         raise
 
 
 def select_local_store_population_data(batch: List[LocalStoreSubdistrictId]):
+    logger = logging.getLogger(__name__)
     local_store_population_data = []
 
     # 배치로 처리하기 위해 서브리스트를 만들어서 조회
@@ -295,99 +301,107 @@ def select_local_store_population_data(batch: List[LocalStoreSubdistrictId]):
 
     # 인구 데이터를 정리하기 위한 딕셔너리 초기화
     population_data_dict = {}
+    try:
 
-    # 가져온 인구 데이터를 딕셔너리에 저장
-    for row in population_data_rows:
-        key = row["SUB_DISTRICT_ID"]
+        # 가져온 인구 데이터를 딕셔너리에 저장
+        for row in population_data_rows:
+            key = row["SUB_DISTRICT_ID"]
 
-        if key not in population_data_dict:
-            population_data_dict[key] = {
-                "total_population": row["TOTAL_POPULATION"],  # 총 인구
-                "population_male": 0,
-                "population_female": 0,
-                "age_under_10": 0,
-                "age_10s": 0,
-                "age_20s": 0,
-                "age_30s": 0,
-                "age_40s": 0,
-                "age_50s": 0,
-                "age_60_over": 0,
-                "ref_date": row["REF_DATE"],
-            }
+            if key not in population_data_dict:
+                population_data_dict[key] = {
+                    "total_population": row["TOTAL_POPULATION"],  # 총 인구
+                    "population_male": 0,
+                    "population_female": 0,
+                    "age_under_10": 0,
+                    "age_10s": 0,
+                    "age_20s": 0,
+                    "age_30s": 0,
+                    "age_40s": 0,
+                    "age_50s": 0,
+                    "age_60_over": 0,
+                    "ref_date": row["REF_DATE"],
+                }
 
-        # 성별 및 연령대별 인구 수 계산
-        if row["GENDER_ID"] == 1:  # 남자
-            population_data_dict[key]["population_male"] = row[
-                "TOTAL_POPULATION_BY_GENDER"
-            ]
-            population_data_dict[key]["age_under_10"] += row["AGE_UNDER_10s"]
-            population_data_dict[key]["age_10s"] += row["AGE_10s"]
-            population_data_dict[key]["age_20s"] += row["AGE_20s"]
-            population_data_dict[key]["age_30s"] += row["AGE_30s"]
-            population_data_dict[key]["age_40s"] += row["AGE_40s"]
-            population_data_dict[key]["age_50s"] += row["AGE_50s"]
-            population_data_dict[key]["age_60_over"] += row["AGE_PLUS_60s"]
-        elif row["GENDER_ID"] == 2:  # 여자
-            population_data_dict[key]["population_female"] = row[
-                "TOTAL_POPULATION_BY_GENDER"
-            ]
-            population_data_dict[key]["age_under_10"] += row["AGE_UNDER_10s"]
-            population_data_dict[key]["age_10s"] += row["AGE_10s"]
-            population_data_dict[key]["age_20s"] += row["AGE_20s"]
-            population_data_dict[key]["age_30s"] += row["AGE_30s"]
-            population_data_dict[key]["age_40s"] += row["AGE_40s"]
-            population_data_dict[key]["age_50s"] += row["AGE_50s"]
-            population_data_dict[key]["age_60_over"] += row["AGE_PLUS_60s"]
+            # 성별 및 연령대별 인구 수 계산
+            if row["GENDER_ID"] == 1:  # 남자
+                population_data_dict[key]["population_male"] = row[
+                    "TOTAL_POPULATION_BY_GENDER"
+                ]
+                population_data_dict[key]["age_under_10"] += row["AGE_UNDER_10s"]
+                population_data_dict[key]["age_10s"] += row["AGE_10s"]
+                population_data_dict[key]["age_20s"] += row["AGE_20s"]
+                population_data_dict[key]["age_30s"] += row["AGE_30s"]
+                population_data_dict[key]["age_40s"] += row["AGE_40s"]
+                population_data_dict[key]["age_50s"] += row["AGE_50s"]
+                population_data_dict[key]["age_60_over"] += row["AGE_PLUS_60s"]
+            elif row["GENDER_ID"] == 2:  # 여자
+                population_data_dict[key]["population_female"] = row[
+                    "TOTAL_POPULATION_BY_GENDER"
+                ]
+                population_data_dict[key]["age_under_10"] += row["AGE_UNDER_10s"]
+                population_data_dict[key]["age_10s"] += row["AGE_10s"]
+                population_data_dict[key]["age_20s"] += row["AGE_20s"]
+                population_data_dict[key]["age_30s"] += row["AGE_30s"]
+                population_data_dict[key]["age_40s"] += row["AGE_40s"]
+                population_data_dict[key]["age_50s"] += row["AGE_50s"]
+                population_data_dict[key]["age_60_over"] += row["AGE_PLUS_60s"]
 
-    # 각 local store에 대해 인구 데이터 생성
-    for local_store in batch:
-        sub_district_id = local_store.sub_district_id
-        if sub_district_id in population_data_dict:
-            total_population = population_data_dict[sub_district_id]["total_population"]
-            population_male = population_data_dict[sub_district_id]["population_male"]
-            population_female = population_data_dict[sub_district_id][
-                "population_female"
-            ]
-            age_under_10 = population_data_dict[sub_district_id]["age_under_10"]
-            age_10s = population_data_dict[sub_district_id]["age_10s"]
-            age_20s = population_data_dict[sub_district_id]["age_20s"]
-            age_30s = population_data_dict[sub_district_id]["age_30s"]
-            age_40s = population_data_dict[sub_district_id]["age_40s"]
-            age_50s = population_data_dict[sub_district_id]["age_50s"]
-            age_60_over = population_data_dict[sub_district_id]["age_60_over"]
-            ref_date = population_data_dict[sub_district_id]["ref_date"]
+        # 각 local store에 대해 인구 데이터 생성
+        for local_store in batch:
+            sub_district_id = local_store.sub_district_id
+            if sub_district_id in population_data_dict:
+                total_population = population_data_dict[sub_district_id][
+                    "total_population"
+                ]
+                population_male = population_data_dict[sub_district_id][
+                    "population_male"
+                ]
+                population_female = population_data_dict[sub_district_id][
+                    "population_female"
+                ]
+                age_under_10 = population_data_dict[sub_district_id]["age_under_10"]
+                age_10s = population_data_dict[sub_district_id]["age_10s"]
+                age_20s = population_data_dict[sub_district_id]["age_20s"]
+                age_30s = population_data_dict[sub_district_id]["age_30s"]
+                age_40s = population_data_dict[sub_district_id]["age_40s"]
+                age_50s = population_data_dict[sub_district_id]["age_50s"]
+                age_60_over = population_data_dict[sub_district_id]["age_60_over"]
+                ref_date = population_data_dict[sub_district_id]["ref_date"]
 
-            # 성비 계산
-            population_male_percent = (
-                (population_male / total_population * 100)
-                if total_population > 0
-                else 0
-            )
-            population_female_percent = (
-                (population_female / total_population * 100)
-                if total_population > 0
-                else 0
-            )
-
-            # LocalStorePopulationData 인스턴스 생성 및 추가
-            local_store_population_data.append(
-                LocalStorePopulationData(
-                    store_business_number=local_store.store_business_number,
-                    population_total=total_population,
-                    population_male_percent=population_male_percent,
-                    population_female_percent=population_female_percent,
-                    population_age_10_under=age_under_10,
-                    population_age_10s=age_10s,
-                    population_age_20s=age_20s,
-                    population_age_30s=age_30s,
-                    population_age_40s=age_40s,
-                    population_age_50s=age_50s,
-                    population_age_60_over=age_60_over,
-                    population_date_ref_date=ref_date,
+                # 성비 계산
+                population_male_percent = (
+                    (population_male / total_population * 100)
+                    if total_population > 0
+                    else 0
                 )
-            )
+                population_female_percent = (
+                    (population_female / total_population * 100)
+                    if total_population > 0
+                    else 0
+                )
 
-    return local_store_population_data
+                # LocalStorePopulationData 인스턴스 생성 및 추가
+                local_store_population_data.append(
+                    LocalStorePopulationData(
+                        store_business_number=local_store.store_business_number,
+                        population_total=total_population,
+                        population_male_percent=population_male_percent,
+                        population_female_percent=population_female_percent,
+                        population_age_10_under=age_under_10,
+                        population_age_10s=age_10s,
+                        population_age_20s=age_20s,
+                        population_age_30s=age_30s,
+                        population_age_40s=age_40s,
+                        population_age_50s=age_50s,
+                        population_age_60_over=age_60_over,
+                        population_date_ref_date=ref_date,
+                    )
+                )
+
+        return local_store_population_data
+    except Exception as e:
+        logger.error(f"LocalStoreSubdistrictId 생성 중 오류 발생: {e}")
+        raise
 
 
 ##################### 입지분석 J_SCORE 가중치 평균 ##############################
@@ -462,7 +476,7 @@ def select_local_store_loc_info_data(
             return results
 
     except Exception as e:
-        logger.error(f"loc_info data 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreLocInfoData 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -564,7 +578,7 @@ def select_local_store_loc_info_j_score_data(
             return results
 
     except Exception as e:
-        logger.error(f"loc_info_j_score data 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreLocInfoJscoreData 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -639,7 +653,7 @@ def select_local_store_loc_info_resident_work_pop_data(
             return results
 
     except Exception as e:
-        logger.error(f"loc_info data 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreResidentWorkPopData 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -721,7 +735,7 @@ def select_local_store_loc_info_move_pop_data(
             return results
 
     except Exception as e:
-        logger.error(f"loc_info_move_pop data 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreMovePopData 가져오는 중 오류 발생: {e}")
         raise
 
 
@@ -793,13 +807,210 @@ def select_commercial_district_main_detail_category_count_data(
             return results
 
     except Exception as e:
-        logger.error(f"commercial district count data 가져오는 중 오류 발생: {e}")
+        logger.error(f"LocalStoreMainCategoryCount 가져오는 중 오류 발생: {e}")
+        raise
+
+
+##################### 상권분석 동별 매핑 소분류별 평균 jscore ##############################
+def select_local_store_mp_detail_cateogry_id() -> (
+    List[LocalStoreMappingSubDistrictDetailCategoryId]
+):
+    logger = logging.getLogger(__name__)
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                select_query = """
+                    SELECT
+                        LS.STORE_BUSINESS_NUMBER,
+                        LS.SUB_DISTRICT_ID,
+                        DCM.DETAIL_CATEGORY_ID
+                    FROM LOCAL_STORE LS
+                    JOIN BUSINESS_AREA_CATEGORY BAC ON BAC.DETAIL_CATEGORY_NAME = LS.SMALL_CATEGORY_NAME
+                    JOIN DETAIL_CATEGORY_MAPPING DCM ON DCM.BUSINESS_AREA_CATEGORY_ID = BAC.BUSINESS_AREA_CATEGORY_ID
+                    ;
+                """
+
+                cursor.execute(select_query)
+                rows = cursor.fetchall()
+
+                result = []
+                for row in rows:
+                    # None 값이 있는지 확인하고 제외
+                    if None not in (
+                        row["STORE_BUSINESS_NUMBER"],
+                        row["SUB_DISTRICT_ID"],
+                        row["DETAIL_CATEGORY_ID"],
+                    ):
+                        result.append(
+                            LocalStoreMappingSubDistrictDetailCategoryId(
+                                store_business_number=row["STORE_BUSINESS_NUMBER"],
+                                sub_district_id=row["SUB_DISTRICT_ID"],
+                                detail_category_id=row["DETAIL_CATEGORY_ID"],
+                            )
+                        )
+
+                return result
+
+    except Exception as e:
+        logger.error(
+            f"LocalStoreMappingSubDistrictDetailCategoryId를 가져오는 중 오류 발생: {e}"
+        )
+        raise
+
+
+def select_commercial_district_j_score_average_data(
+    mappings: List[LocalStoreMappingSubDistrictDetailCategoryId],
+) -> List[LocalStoreCommercialDistrictJscoreAverage]:
+
+    logger = logging.getLogger(__name__)
+
+    # Group by store_business_number
+    store_mappings: Dict[str, Dict] = defaultdict(
+        lambda: {"sub_district_id": None, "detail_categories": set()}
+    )
+
+    # First pass: group stores and their categories
+    for mapping in mappings:
+        store_data = store_mappings[mapping.store_business_number]
+        store_data["sub_district_id"] = mapping.sub_district_id
+        store_data["detail_categories"].add(mapping.detail_category_id)
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                store_j_scores: Dict[str, Dict[str, List[float]]] = defaultdict(
+                    lambda: {
+                        "market_size": [],
+                        "average_sales": [],
+                        "usage_count": [],
+                        "sub_district_density": [],
+                        "average_payment": [],
+                    }
+                )
+
+                for store_number, store_data in store_mappings.items():
+                    detail_categories_str = ", ".join(
+                        map(str, store_data["detail_categories"])
+                    )
+
+                    query = """
+                    SELECT 
+                        SD.SUB_DISTRICT_ID,
+                        COALESCE(CDMSS.BIZ_DETAIL_CATEGORY_ID, CDUCS.BIZ_DETAIL_CATEGORY_ID, 
+                                CDASS.BIZ_DETAIL_CATEGORY_ID, CDSDDS.BIZ_DETAIL_CATEGORY_ID, 
+                                CDAPS.BIZ_DETAIL_CATEGORY_ID) AS BIZ_DETAIL_CATEGORY_ID,
+                        CDMSS.J_SCORE AS MARKET_SIZE_J,
+                        CDUCS.J_SCORE AS USAGE_COUNT_J,
+                        CDASS.J_SCORE AS AVERAGE_SALES_J,
+                        CDSDDS.J_SCORE AS SUB_DISTRICT_DENSITY_J,
+                        CDAPS.J_SCORE AS AVERAGE_PAYMENT_J
+                    FROM
+                        SUB_DISTRICT SD
+                    LEFT JOIN COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS CDMSS 
+                        ON CDMSS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                        AND CDMSS.BIZ_DETAIL_CATEGORY_ID IN ({})
+                    LEFT JOIN COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS CDUCS 
+                        ON CDUCS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                        AND CDUCS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                    LEFT JOIN COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS CDASS 
+                        ON CDASS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                        AND CDASS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                    LEFT JOIN COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS CDSDDS 
+                        ON CDSDDS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                        AND CDSDDS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                    LEFT JOIN COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS CDAPS 
+                        ON CDAPS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                        AND CDAPS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                    WHERE
+                        SD.SUB_DISTRICT_ID = %s
+                    AND CDMSS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS)
+                    AND CDUCS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS)
+                    AND CDASS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS)
+                    AND CDSDDS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS)
+                    AND CDAPS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS)
+                    ;
+                    """.format(
+                        detail_categories_str
+                    )
+
+                    cursor.execute(query, (store_data["sub_district_id"],))
+                    scores = cursor.fetchall()
+
+                    store_scores = store_j_scores[store_number]
+                    for score in scores:
+                        if score["BIZ_DETAIL_CATEGORY_ID"] is not None:
+                            if score["MARKET_SIZE_J"] is not None:
+                                store_scores["market_size"].append(
+                                    float(score["MARKET_SIZE_J"])
+                                )
+                            if score["AVERAGE_SALES_J"] is not None:
+                                store_scores["average_sales"].append(
+                                    float(score["AVERAGE_SALES_J"])
+                                )
+                            if score["USAGE_COUNT_J"] is not None:
+                                store_scores["usage_count"].append(
+                                    float(score["USAGE_COUNT_J"])
+                                )
+                            if score["SUB_DISTRICT_DENSITY_J"] is not None:
+                                store_scores["sub_district_density"].append(
+                                    float(score["SUB_DISTRICT_DENSITY_J"])
+                                )
+                            if score["AVERAGE_PAYMENT_J"] is not None:
+                                store_scores["average_payment"].append(
+                                    float(score["AVERAGE_PAYMENT_J"])
+                                )
+
+                # Calculate averages for each store
+                results = []
+                for store_number, scores in store_j_scores.items():
+                    try:
+                        result = LocalStoreCommercialDistrictJscoreAverage(
+                            store_business_number=store_number,
+                            commercial_district_market_size_j_socre=(
+                                mean(scores["market_size"])
+                                if scores["market_size"]
+                                else 0.0
+                            ),
+                            commercial_district_average_sales_j_socre=(
+                                mean(scores["average_sales"])
+                                if scores["average_sales"]
+                                else 0.0
+                            ),
+                            commercial_district_usage_count_j_socre=(
+                                mean(scores["usage_count"])
+                                if scores["usage_count"]
+                                else 0.0
+                            ),
+                            commercial_district_sub_district_density_j_socre=(
+                                mean(scores["sub_district_density"])
+                                if scores["sub_district_density"]
+                                else 0.0
+                            ),
+                            commercial_district_sub_average_payment_j_socre=(
+                                mean(scores["average_payment"])
+                                if scores["average_payment"]
+                                else 0.0
+                            ),
+                        )
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(
+                            f"Error calculating averages for store {store_number}: {e}"
+                        )
+                        continue
+
+                return results
+
+    except Exception as e:
+        logger.error(f"Error processing batch J scores: {e}")
         raise
 
 
 ######################## INSERT ######################################
-
-
+######################## INSERT ######################################
+######################## INSERT ######################################
+######################## INSERT ######################################
 # 매장 기본 정보 넣기
 def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
     try:
@@ -1133,7 +1344,7 @@ def insert_or_update_loc_info_move_pop_data_batch(
         raise
 
 
-# 매장 읍/면/동 입지 정보 J_SCORE 넣기
+# 매장 읍/면/동 상권분석 대분류 갯수 넣기
 def insert_or_update_commercial_district_main_category_count_data_batch(
     batch: List[LocalStoreLocInfoData],
 ) -> None:
@@ -1177,4 +1388,51 @@ def insert_or_update_commercial_district_main_category_count_data_batch(
 
     except Exception as e:
         logging.error(f"Error inserting/updating loc info j_score data: {e}")
+        raise
+
+
+# 상권분석 읍/면/동 소분류 J_Score 평균
+def insert_or_update_commercial_district_j_score_average_data_batch(
+    batch: List[LocalStoreCommercialDistrictJscoreAverage],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        COMMERCIAL_DISTRICT_MARKET_SIZE_J_SCORE, 
+                        COMMERCIAL_DISTRICT_AVERAGE_SALES_J_SCORE,
+                        COMMERCIAL_DISTRICT_USAGE_COUNT_J_SCORE, 
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_J_SCORE,
+                        COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_J_SCORE
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        COMMERCIAL_DISTRICT_MARKET_SIZE_J_SCORE = VALUES(COMMERCIAL_DISTRICT_MARKET_SIZE_J_SCORE),
+                        COMMERCIAL_DISTRICT_AVERAGE_SALES_J_SCORE = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_J_SCORE),
+                        COMMERCIAL_DISTRICT_USAGE_COUNT_J_SCORE = VALUES(COMMERCIAL_DISTRICT_USAGE_COUNT_J_SCORE),
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_J_SCORE = VALUES(COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_J_SCORE),
+                        COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_J_SCORE = VALUES(COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_J_SCORE)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.commercial_district_market_size_j_socre,
+                        store_info.commercial_district_average_sales_j_socre,
+                        store_info.commercial_district_usage_count_j_socre,
+                        store_info.commercial_district_sub_district_density_j_socre,
+                        store_info.commercial_district_sub_average_payment_j_socre,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating commercial_district j_score average data: {e}"
+        )
         raise

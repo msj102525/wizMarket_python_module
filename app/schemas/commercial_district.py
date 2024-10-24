@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
-from app.schemas.statistics import CommercialStatistics
+from app.schemas.statistics_mod import CommercialStatistics
 
 
 class CommercialDistrict(BaseModel):

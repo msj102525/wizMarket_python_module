@@ -133,6 +133,7 @@ class LocalStoreBasicInfo(BaseModel):
 # 매장 소분류 비즈맵 매핑 대표 id
 class LocalStoreMappingRepId(BaseModel):
     store_business_number: str
+    sub_district_id: int
     rep_id: Optional[int] = 3  # 3: 비즈맵 소분류 없음 default 값
 
     class Config:
@@ -247,3 +248,25 @@ class LocalStoreMainCategoryCount(BaseModel):
     class Config:
         from_attributes = True
 
+
+# 매장 소분류 비즈맵 매핑 대표 id
+class LocalStoreMappingSubDistrictDetailCategoryId(BaseModel):
+    store_business_number: str
+    sub_district_id: int
+    detail_category_id: Optional[int] = 3  # 3: 비즈맵 소분류 없음 default 값
+
+    class Config:
+        from_attributes = True
+
+
+# 상권분석 읍/면/동 소분류 J_Score 평균
+class LocalStoreCommercialDistrictJscoreAverage(BaseModel):
+    store_business_number: str
+    commercial_district_market_size_j_socre: float
+    commercial_district_average_sales_j_socre: float
+    commercial_district_usage_count_j_socre: float
+    commercial_district_sub_district_density_j_socre: float
+    commercial_district_sub_average_payment_j_socre: float
+
+    class Config:
+        from_attributes = True
