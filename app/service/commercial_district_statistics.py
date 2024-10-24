@@ -94,12 +94,13 @@ def calculate_j_score(data):
 
         # 각 항목에 대해 J-Score를 계산합니다.
         for item in group_data:
-            column_name = item.column_name  # 시장 규모를 가져옵니다.
+            column_name = item.column_name  # 컬럼값 가져옵니다.
             if column_name > 0:
                 rank = ranked_counts.index(column_name) + 1  # 순위를 찾습니다.
                 j_score = 10 * ((totals + 1 - rank) / totals)  # J-Score 계산
+                j_score_per = 10 * ((item) / max(group_data))  # J-Score_Per 계산
             else:
-                j_score = 0  # 시장 규모가 0일 경우 J-Score는 0입니다.
+                j_score = 0  # 컬럼값 0일 경우 J-Score는 0입니다.
 
             # J-Score와 관련된 데이터를 리스트에 추가합니다.
             j_score_data.append(

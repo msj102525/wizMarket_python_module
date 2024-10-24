@@ -31,6 +31,8 @@ from app.crud.report import (
     insert_or_update_commercial_district_weekday_time_average_sales_data_batch as crud_insert_or_update_commercial_district_weekday_time_average_sales_data_batch,
     select_commercial_district_district_average_sales_data_batch as crud_select_commercial_district_district_average_sales_data_batch,
     insert_or_update_commercial_district_district_average_sales_data_batch as crud_insert_or_update_commercial_district_district_average_sales_data_batch,
+    select_commercial_district_top5_top3_data_batch as crud_select_commercial_district_top5_top3_data_batch,
+    insert_or_update_commercial_district_top5_top3_data_batch as crud_insert_or_update_commercial_district_top5_top3_data_batch,
 )
 from app.db.connect import get_db_connection
 from app.schemas.report import (
@@ -44,6 +46,7 @@ from app.schemas.report import (
     LocalStoreMappingSubDistrictDetailCategoryId,
     LocalStoreMovePopData,
     LocalStorePopulationData,
+    LocalStoreRisingBusinessNTop5SDTop3,
     LocalStoreSubdistrictId,
     LocalStoreTop5Menu,
 )
@@ -760,7 +763,7 @@ def insert_or_update_commercial_district_district_average_sales_data():
 
 # 뜨는 업종 전국 TOP5, 읍/면/동 TOP3 (시/군/구,읍/면/동,소분류명,증가율)
 def insert_or_update_commercial_district_top5_top3_data_thread(
-    store_loc_info_cd_mc_count_data_list: List[LocalStoreCDDistrictAverageSalesTop5],
+    store_loc_info_cd_mc_count_data_list: List[LocalStoreRisingBusinessNTop5SDTop3],
     batch_size: int = 1000,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -769,7 +772,7 @@ def insert_or_update_commercial_district_top5_top3_data_thread(
             batch = store_loc_info_cd_mc_count_data_list[i : i + batch_size]
             futures.append(
                 executor.submit(
-                    # crud_insert_or_update_commercial_district_top5_top3_data_batch,
+                    crud_insert_or_update_commercial_district_top5_top3_data_batch,
                     batch,
                 )
             )
@@ -777,15 +780,13 @@ def insert_or_update_commercial_district_top5_top3_data_thread(
         for future in tqdm(
             as_completed(futures),
             total=len(futures),
-            desc="Inserting cd district average sales batches",
+            desc="Inserting cd top5 top3 batches",
         ):
             future.result()
 
 
 def select_commercial_district_top5_top3_thread(
-    local_store_sub_district_id_list: List[
-        LocalStoreMappingSubDistrictDetailCategoryId
-    ],
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
     batch_size: int = 5000,
 ) -> List[LocalStoreCDDistrictAverageSalesTop5]:
     results = []
@@ -795,7 +796,7 @@ def select_commercial_district_top5_top3_thread(
             batch = local_store_sub_district_id_list[i : i + batch_size]
             futures.append(
                 executor.submit(
-                    # crud_select_commercial_district_top5_top3_data_batch,
+                    crud_select_commercial_district_top5_top3_data_batch,
                     batch,
                 )
             )
@@ -803,7 +804,7 @@ def select_commercial_district_top5_top3_thread(
         for future in tqdm(
             as_completed(futures),
             total=len(futures),
-            desc="SELECT cd district average sales batches",
+            desc="SELECT cd top5 top3 batches",
         ):
             try:
                 batch_result = future.result()
@@ -821,13 +822,14 @@ def insert_or_update_commercial_district_top5_top3_data():
         crud_select_local_store_sub_district_id()
     )
 
-    # print(len(local_store_sub_district_detail_category_id_list))
-    # print(local_store_sub_district_detail_category_id_list[1])
+    # print(len(local_store_sub_district_id_list))
+    # print(local_store_sub_district_id_list[1])
 
     commercial_district_top5_top3_list = select_commercial_district_top5_top3_thread(
         local_store_sub_district_id_list
     )
-    print(len(commercial_district_top5_top3_list))
+    # print(len(commercial_district_top5_top3_list))
+    # print(local_store_sub_district_id_list[0])
 
     insert_or_update_commercial_district_top5_top3_data_thread(
         commercial_district_top5_top3_list
@@ -849,5 +851,6 @@ if __name__ == "__main__":
     # insert_or_update_commercial_district_j_score_average_data()  #  726.98 seconds
     # insert_or_update_local_store_weekday_time_average_sales()  #  90.22 seconds
     # insert_or_update_commercial_district_district_average_sales_data()  # 3016.82 seconds 150000 개 빔
+    insert_or_update_commercial_district_top5_top3_data()  # 550.75 seconds
 
     print("END!!!!!!!!!!!!!!!")

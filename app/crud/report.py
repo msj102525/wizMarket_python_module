@@ -24,6 +24,7 @@ from app.schemas.report import (
     LocalStoreMovePopData,
     LocalStorePopulationData,
     LocalStoreResidentWorkPopData,
+    LocalStoreRisingBusinessNTop5SDTop3,
     LocalStoreSubdistrictId,
     LocalStoreTop5Menu,
     Report,
@@ -1224,6 +1225,143 @@ def select_commercial_district_district_average_sales_data_batch(
         raise
 
 
+######################## 뜨는 업종 전국 TOP5, 읍/면/동 TOP3 (시/군/구,읍/면/동,소분류명,증가율) ######################################
+def select_commercial_district_top5_top3_data_batch(
+    batch: List[LocalStoreSubdistrictId],
+) -> List[LocalStoreRisingBusinessNTop5SDTop3]:
+    logger = logging.getLogger(__name__)
+    results = []
+
+    try:
+        with get_db_connection() as connection:
+            cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+            # TOP5 Query - ORDER BY 제거
+            select_top5_query = """
+                WITH RankedBusiness AS (
+                    SELECT 
+                        D.DISTRICT_NAME,
+                        SD.SUB_DISTRICT_NAME,
+                        RB.GROWTH_RATE,
+                        BDC.BIZ_DETAIL_CATEGORY_NAME,
+                        ROW_NUMBER() OVER (PARTITION BY Y_M ORDER BY GROWTH_RATE DESC) AS NATIONAL_TOP5
+                    FROM RISING_BUSINESS RB
+                    JOIN DISTRICT D ON D.DISTRICT_ID= RB.DISTRICT_ID
+                    JOIN SUB_DISTRICT SD ON SD.SUB_DISTRICT_ID = RB.SUB_DISTRICT_ID
+                    JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = RB.BIZ_DETAIL_CATEGORY_ID
+                    WHERE GROWTH_RATE < 1000
+                    AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                )
+                SELECT
+                    DISTRICT_NAME,
+                    SUB_DISTRICT_NAME,
+                    BIZ_DETAIL_CATEGORY_NAME,
+                    GROWTH_RATE    
+                FROM RankedBusiness
+                WHERE NATIONAL_TOP5 <= 5
+            """
+
+            # sub_district_id 리스트 생성
+            sub_district_ids = [store_info.sub_district_id for store_info in batch]
+
+            # TOP3 Query - ORDER BY 제거
+            select_top3_query = f"""
+                WITH RankedBusiness AS (
+                    SELECT 
+                        D.DISTRICT_NAME,
+                        SD.SUB_DISTRICT_NAME,
+                        BDC.BIZ_DETAIL_CATEGORY_NAME,
+                        RB.GROWTH_RATE,
+                        RB.SUB_DISTRICT_ID,
+                        ROW_NUMBER() OVER (PARTITION BY RB.SUB_DISTRICT_ID ORDER BY RB.GROWTH_RATE DESC) AS NATIONAL_TOP3
+                    FROM RISING_BUSINESS RB
+                    JOIN DISTRICT D ON D.DISTRICT_ID = RB.DISTRICT_ID
+                    JOIN SUB_DISTRICT SD ON SD.SUB_DISTRICT_ID = RB.SUB_DISTRICT_ID
+                    JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = RB.BIZ_DETAIL_CATEGORY_ID
+                    WHERE GROWTH_RATE < 1000
+                    AND RB.SUB_DISTRICT_ID IN ({', '.join(['%s'] * len(sub_district_ids))})
+                    AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                )
+                SELECT
+                    DISTRICT_NAME,
+                    SUB_DISTRICT_NAME,
+                    BIZ_DETAIL_CATEGORY_NAME,
+                    GROWTH_RATE,
+                    SUB_DISTRICT_ID
+                FROM RankedBusiness
+                WHERE NATIONAL_TOP3 <= 3
+            """
+
+            # Execute TOP5 query
+            cursor.execute(select_top5_query)
+            top5_rows = cursor.fetchall()
+
+            # Execute TOP3 query
+            cursor.execute(select_top3_query, sub_district_ids)
+            top3_rows = cursor.fetchall()
+
+            # Process results for each store
+            for store_info in batch:
+                # Format TOP5 data
+                top5_info = []
+                for row in top5_rows:
+                    info = f"{row['DISTRICT_NAME']},{row['SUB_DISTRICT_NAME']},{row['BIZ_DETAIL_CATEGORY_NAME']},{row['GROWTH_RATE']}"
+                    top5_info.append(info)
+
+                # Fill remaining TOP5 slots with empty strings if necessary
+                while len(top5_info) < 5:
+                    top5_info.append(",,,")
+
+                # Filter and format TOP3 data for current sub_district
+                current_store_top3 = []
+                for row in top3_rows:
+                    if row["SUB_DISTRICT_ID"] == store_info.sub_district_id:
+                        info = f"{row['DISTRICT_NAME']},{row['SUB_DISTRICT_NAME']},{row['BIZ_DETAIL_CATEGORY_NAME']},{row['GROWTH_RATE']}"
+                        current_store_top3.append(info)
+
+                # Fill remaining TOP3 slots with empty strings if necessary
+                while len(current_store_top3) < 3:
+                    current_store_top3.append(",,,")
+
+                # Create result object
+                result = LocalStoreRisingBusinessNTop5SDTop3(
+                    store_business_number=store_info.store_business_number,
+                    rising_business_national_rising_sales_top1_info=(
+                        top5_info[0] if len(top5_info) > 0 else ",,,"
+                    ),
+                    rising_business_national_rising_sales_top2_info=(
+                        top5_info[1] if len(top5_info) > 1 else ",,,"
+                    ),
+                    rising_business_national_rising_sales_top3_info=(
+                        top5_info[2] if len(top5_info) > 2 else ",,,"
+                    ),
+                    rising_business_national_rising_sales_top4_info=(
+                        top5_info[3] if len(top5_info) > 3 else ",,,"
+                    ),
+                    rising_business_national_rising_sales_top5_info=(
+                        top5_info[4] if len(top5_info) > 4 else ",,,"
+                    ),
+                    rising_business_sub_district_rising_sales_top1_info=(
+                        current_store_top3[0] if len(current_store_top3) > 0 else ",,,"
+                    ),
+                    rising_business_sub_district_rising_sales_top2_info=(
+                        current_store_top3[1] if len(current_store_top3) > 1 else ",,,"
+                    ),
+                    rising_business_sub_district_rising_sales_top3_info=(
+                        current_store_top3[2] if len(current_store_top3) > 2 else ",,,"
+                    ),
+                )
+                # print(result)
+                results.append(result)
+
+            return results
+
+    except Exception as e:
+        logger.error(f"LocalStoreLocInfoData 가져오는 중 오류 발생: {e}")
+        raise
+
+
+######################## INSERT ######################################
 ######################## INSERT ######################################
 ######################## INSERT ######################################
 ######################## INSERT ######################################
@@ -1777,5 +1915,61 @@ def insert_or_update_commercial_district_district_average_sales_data_batch(
     except Exception as e:
         logging.error(
             f"Error inserting/updating commercial_district district average sales data: {e}"
+        )
+        raise
+
+
+# 뜨는 업종 전국 TOP5, 읍/면/동 TOP3 (시/군/구,읍/면/동,소분류명,증가율)
+def insert_or_update_commercial_district_top5_top3_data_batch(
+    batch: List[LocalStoreCDDistrictAverageSalesTop5],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO, 
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP2_INFO,
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP3_INFO, 
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP4_INFO,
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP5_INFO,
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP1_INFO,
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO,
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP2_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP2_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP3_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP3_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP4_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP4_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP5_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP5_INFO),
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP1_INFO = VALUES(RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP1_INFO),
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO = VALUES(RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO),
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO = VALUES(RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.rising_business_national_rising_sales_top1_info,
+                        store_info.rising_business_national_rising_sales_top2_info,
+                        store_info.rising_business_national_rising_sales_top3_info,
+                        store_info.rising_business_national_rising_sales_top4_info,
+                        store_info.rising_business_national_rising_sales_top5_info,
+                        store_info.rising_business_sub_district_rising_sales_top1_info,
+                        store_info.rising_business_sub_district_rising_sales_top2_info,
+                        store_info.rising_business_sub_district_rising_sales_top3_info,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating commercial_district top5 top3 data: {e}"
         )
         raise
