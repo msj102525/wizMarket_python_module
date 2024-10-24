@@ -1161,6 +1161,7 @@ def select_commercial_district_district_average_sales_data_batch(
                                 WHERE
                                     CD.DISTRICT_ID IN (SELECT DISTRICT_ID FROM SUB_DISTRICT WHERE SUB_DISTRICT_ID = %s)
                                     AND CD.BIZ_DETAIL_CATEGORY_ID IN ({})
+                                    AND CD.Y_M = (SELECT MAX(Y_M ) FROM COMMERCIAL_DISTRICT)
                                 GROUP BY
                                     SD.SUB_DISTRICT_NAME
                             ),

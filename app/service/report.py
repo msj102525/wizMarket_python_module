@@ -702,9 +702,11 @@ def insert_or_update_commercial_district_district_average_sales_data_thread(
 
 
 def select_commercial_district_district_average_sales_thread(
-    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
+    local_store_sub_district_id_list: List[
+        LocalStoreMappingSubDistrictDetailCategoryId
+    ],
     batch_size: int = 5000,
-) -> List[LocalStoreMainCategoryCount]:
+) -> List[LocalStoreCDDistrictAverageSalesTop5]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -747,9 +749,88 @@ def insert_or_update_commercial_district_district_average_sales_data():
         )
     )
     print(len(commercial_district_district_average_sales_list))
-   
+
     insert_or_update_commercial_district_district_average_sales_data_thread(
         commercial_district_district_average_sales_list
+    )
+
+
+#################################################################################
+
+
+# 뜨는 업종 전국 TOP5, 읍/면/동 TOP3 (시/군/구,읍/면/동,소분류명,증가율)
+def insert_or_update_commercial_district_top5_top3_data_thread(
+    store_loc_info_cd_mc_count_data_list: List[LocalStoreCDDistrictAverageSalesTop5],
+    batch_size: int = 1000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_cd_mc_count_data_list), batch_size):
+            batch = store_loc_info_cd_mc_count_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    # crud_insert_or_update_commercial_district_top5_top3_data_batch,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting cd district average sales batches",
+        ):
+            future.result()
+
+
+def select_commercial_district_top5_top3_thread(
+    local_store_sub_district_id_list: List[
+        LocalStoreMappingSubDistrictDetailCategoryId
+    ],
+    batch_size: int = 5000,
+) -> List[LocalStoreCDDistrictAverageSalesTop5]:
+    results = []
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    # crud_select_commercial_district_top5_top3_data_batch,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="SELECT cd district average sales batches",
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_commercial_district_top5_top3_data():
+    local_store_sub_district_id_list: List[LocalStoreSubdistrictId] = (
+        crud_select_local_store_sub_district_id()
+    )
+
+    # print(len(local_store_sub_district_detail_category_id_list))
+    # print(local_store_sub_district_detail_category_id_list[1])
+
+    commercial_district_top5_top3_list = select_commercial_district_top5_top3_thread(
+        local_store_sub_district_id_list
+    )
+    print(len(commercial_district_top5_top3_list))
+
+    insert_or_update_commercial_district_top5_top3_data_thread(
+        commercial_district_top5_top3_list
     )
 
 
@@ -767,6 +848,6 @@ if __name__ == "__main__":
     # insert_or_update_commercial_district_main_detail_category_count_data()  #  329.36 seconds
     # insert_or_update_commercial_district_j_score_average_data()  #  726.98 seconds
     # insert_or_update_local_store_weekday_time_average_sales()  #  90.22 seconds
-    insert_or_update_commercial_district_district_average_sales_data()  # 338.65 seconds
+    # insert_or_update_commercial_district_district_average_sales_data()  # 3016.82 seconds 150000 개 빔
 
     print("END!!!!!!!!!!!!!!!")
