@@ -1,6 +1,7 @@
 import itertools
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
+import time
 from typing import List, Dict
 from dotenv import load_dotenv
 import numpy as np
@@ -22,8 +23,15 @@ from app.crud.commercial_district import (
     select_column_name_has_value,
     select_sub_district_density_has_value as crud_select_sub_district_density_has_value,
     select_usage_count_has_value as crud_select_usage_count_has_value,
+    select_commercial_district_sub_district_detail_category_ids as crud_select_commercial_district_sub_district_detail_category_ids,
+    select_commercial_district_j_score_weight_average_data as crud_select_commercial_district_j_score_weight_average_data,
+    insert_or_update_commercial_district_j_score_weight_average_data_batch as crud_insert_or_update_commercial_district_j_score_weight_average_data_batch,
 )
-from app.schemas.commercial_district import CommercialDistrictStatistics
+from app.schemas.commercial_district import (
+    CommercialDistrictStatistics,
+    CommercialDistrictSubDistrictDetailCategoryId,
+    CommercialDistrictWeightedAvgStatistics,
+)
 
 load_dotenv()
 
@@ -416,10 +424,139 @@ def commercial_district_column_name_statistics(column_name: str, ref_date: str):
                 crud_insert_market_size_statistics(statistics_to_insert)
 
 
+##############################################################################################
+# 시간 재는 함수
+def time_execution(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(
+            f"Execution time for {func.__name__}: {end_time - start_time:.2f} seconds"
+        )
+        return result
+
+    return wrapper
+
+
+# 상권분석 가중치 통계
+def insert_or_update_commercial_district_j_score_weight_average_data_thread(
+    commercial_district_j_score_average_data_list: List[
+        CommercialDistrictWeightedAvgStatistics
+    ],
+    batch_size: int = 5000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(
+            0, len(commercial_district_j_score_average_data_list), batch_size
+        ):
+            batch = commercial_district_j_score_average_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_insert_or_update_commercial_district_j_score_weight_average_data_batch,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting cd jscore average batches",
+        ):
+            future.result()
+
+
+# def select_commercial_district_j_score_weight_average_thread(
+#     commercial_district_sub_district_detail_category_id_list: List[
+#         CommercialDistrictSubDistrictDetailCategoryId
+#     ],
+#     batch_size: int = 800000,
+# ) -> List[CommercialDistrictWeightedAvgStatistics]:
+#     results = []
+#     with ThreadPoolExecutor(max_workers=12) as executor:
+#         futures = []
+#         for i in range(
+#             0, len(commercial_district_sub_district_detail_category_id_list), batch_size
+#         ):
+#             batch = commercial_district_sub_district_detail_category_id_list[
+#                 i : i + batch_size
+#             ]
+#             futures.append(
+#                 executor.submit(
+#                     crud_select_commercial_district_j_score_weight_average_data,
+#                     batch,
+#                 )
+#             )
+
+#         for future in tqdm(
+#             as_completed(futures),
+#             total=len(futures),
+#             desc="SELECT cd jscore average batches",
+#         ):
+#             try:
+#                 batch_result = future.result()
+#                 results.extend(batch_result)
+#             except Exception as e:
+#                 print(f"배치 처리 중 오류 발생: {e}")
+#                 continue
+
+
+#     return results
+def select_commercial_district_j_score_weight_average(
+    commercial_district_sub_district_detail_category_id_list: List[
+        CommercialDistrictSubDistrictDetailCategoryId
+    ],
+) -> List[CommercialDistrictWeightedAvgStatistics]:
+    try:
+        results = crud_select_commercial_district_j_score_weight_average_data(
+            commercial_district_sub_district_detail_category_id_list
+        )
+    except Exception as e:
+        print(f"데이터 처리 중 오류 발생: {e}")
+        return []
+
+    return results
+
+
+@time_execution
+def commercial_district_j_score_weighted_average_statistics():
+    commercial_district_sub_district_detail_category_id_list: List[
+        CommercialDistrictSubDistrictDetailCategoryId
+    ] = crud_select_commercial_district_sub_district_detail_category_ids()
+
+    print(len(commercial_district_sub_district_detail_category_id_list))
+    print(commercial_district_sub_district_detail_category_id_list[1])
+
+    commercial_district_j_score_weight_average_list = (
+        # select_commercial_district_j_score_weight_average_thread(
+        select_commercial_district_j_score_weight_average(
+            commercial_district_sub_district_detail_category_id_list
+        )
+    )
+    # print(len(commercial_district_j_score_weight_average_list))
+    # print(commercial_district_j_score_weight_average_list[0])
+    # print(commercial_district_j_score_weight_average_list[1])
+    # print(commercial_district_j_score_weight_average_list[2])
+    # print(commercial_district_j_score_weight_average_list[3])
+    # print(commercial_district_j_score_weight_average_list[4])
+    # print(commercial_district_j_score_weight_average_list[5])
+    # print(commercial_district_j_score_weight_average_list[6])
+    # print(commercial_district_j_score_weight_average_list[7])
+    # print(commercial_district_j_score_weight_average_list[8])
+    # print(commercial_district_j_score_weight_average_list[9])
+    # print(commercial_district_j_score_weight_average_list[10])
+    insert_or_update_commercial_district_j_score_weight_average_data_thread(
+        commercial_district_j_score_weight_average_list
+    )
+
+
 if __name__ == "__main__":
     # commercial_district_market_size_statistics("2024-08-01")
-    commercial_district_usage_count_statistics("2024-08-01")
-    commercial_district_average_sales_statistics("2024-08-01")
-    commercial_district_sub_district_density_statistics("2024-08-01")
-    commercial_average_payment_statistics("2024-08-01")
+    # commercial_district_usage_count_statistics("2024-08-01")
+    # commercial_district_average_sales_statistics("2024-08-01")
+    # commercial_district_sub_district_density_statistics("2024-08-01")
+    # commercial_average_payment_statistics("2024-08-01")
     # commercial_district_column_name_statistics("MARKET_SIZE", "2024-08-01")
+    commercial_district_j_score_weighted_average_statistics()
+    print("END!!!!!!!!")

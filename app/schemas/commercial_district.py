@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
@@ -228,8 +228,6 @@ class CommercialDistrictStatisticsBase(BaseModel):
         from_attributes = True
 
 
-
-
 class CommercialDistrictStatistics(BaseModel):
     city_id: int
     district_id: int
@@ -245,7 +243,32 @@ class CommercialDistrictStatistics(BaseModel):
     j_score_rank: float
     j_score_per: float
     stat_level: str
-    ref_date: str
+    ref_date: date
+
+    class Config:
+        from_attributes = True
+
+
+# 상권분석 J_Score 가중치 평균
+class CommercialDistrictSubDistrictDetailCategoryId(BaseModel):
+    sub_district_id: int
+    detail_category_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class CommercialDistrictWeightedAvgStatistics(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    biz_main_category_id: int
+    biz_sub_category_id: int
+    biz_detail_category_id: int
+    j_score_rank: float
+    j_score_per: float
+    stat_level: str
+    ref_date: date
 
     class Config:
         from_attributes = True
