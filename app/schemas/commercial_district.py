@@ -2,8 +2,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
-from app.schemas.statistics_mod import CommercialStatistics
-
 
 class CommercialDistrict(BaseModel):
     commercial_district_id: int
@@ -216,25 +214,6 @@ class CommercialDistrictOutput(BaseModel):
         from_attributes = True
 
 
-class CommercialStatisticsData(BaseModel):
-    market_size: Optional[CommercialStatistics] = None
-    average_sales: Optional[CommercialStatistics] = None
-    average_payment: Optional[CommercialStatistics] = None
-    usage_count: Optional[CommercialStatistics] = None
-    sub_district_density: Optional[CommercialStatistics] = None
-
-    class Config:
-        from_attributes = True
-
-
-class CommercialStatisticsOutput(BaseModel):
-    commercial_district_data: CommercialDistrictOutput
-    statistics_data: Optional[CommercialStatisticsData] = None
-
-    class Config:
-        from_attributes = True
-
-
 #################################
 
 
@@ -249,11 +228,6 @@ class CommercialDistrictStatisticsBase(BaseModel):
         from_attributes = True
 
 
-class CommercialDistrictJScoreOutput(CommercialDistrictInsert):
-    j_score: Optional[float] = None
-
-    class Config:
-        from_attributes = True
 
 
 class CommercialDistrictStatistics(BaseModel):
@@ -268,7 +242,8 @@ class CommercialDistrictStatistics(BaseModel):
     std_val: float
     max_val: float
     min_val: float
-    j_score: float
+    j_score_rank: float
+    j_score_per: float
     stat_level: str
     ref_date: str
 

@@ -97,12 +97,15 @@ def calculate_j_score(data):
             column_name = item.column_name  # 컬럼값 가져옵니다.
             if column_name > 0:
                 rank = ranked_counts.index(column_name) + 1  # 순위를 찾습니다.
-                j_score = 10 * ((totals + 1 - rank) / totals)  # J-Score 계산
-                j_score_per = 10 * ((item) / max(group_data))  # J-Score_Per 계산
-            else:
-                j_score = 0  # 컬럼값 0일 경우 J-Score는 0입니다.
 
-            # J-Score와 관련된 데이터를 리스트에 추가합니다.
+                j_score_rank = 10 * ((totals + 1 - rank) / totals)  # J-Score 계산
+
+                max_value = max([i.column_name for i in group_data])
+                j_score_per = 10 * (item.column_name / max_value)  # J-Score_Per 계산
+            else:
+                j_score_rank = 0  # 컬럼값 0일 경우 J-Score는 0
+                j_score_per = 0
+
             j_score_data.append(
                 (
                     item.city_id,  # 도시 ID
@@ -110,7 +113,8 @@ def calculate_j_score(data):
                     item.sub_district_id,  # 동 ID
                     biz_detail_category_id,  # 소분류 ID
                     column_name,  # 시장 규모
-                    j_score,  # J-Score
+                    j_score_rank,  # J-Score Rank
+                    j_score_per,  # J-Score Percent
                 )
             )
 
@@ -168,7 +172,8 @@ def process_group(group, ref_date, category_ids):
             std_val=statistics["stddev"],
             max_val=statistics["max"],
             min_val=statistics["min"],
-            j_score=j_score_data[5],  # 각 데이터의 j_score를 사용
+            j_score_rank=j_score_data[5],  # 각 데이터의 j_score를 사용
+            j_score_per=j_score_data[6],  # 각 데이터의 j_score를 사용
             stat_level="전국",
             ref_date=ref_date,
         )
@@ -412,7 +417,7 @@ def commercial_district_column_name_statistics(column_name: str, ref_date: str):
 
 
 if __name__ == "__main__":
-    commercial_district_market_size_statistics("2024-08-01")
+    # commercial_district_market_size_statistics("2024-08-01")
     commercial_district_usage_count_statistics("2024-08-01")
     commercial_district_average_sales_statistics("2024-08-01")
     commercial_district_sub_district_density_statistics("2024-08-01")

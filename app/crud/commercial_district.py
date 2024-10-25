@@ -416,8 +416,8 @@ def insert_market_size_statistics(stats: List[CommercialDistrictStatistics]):
             INSERT INTO COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS
             (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
             BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, STAT_LEVEL, REF_DATE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             # 데이터를 튜플 리스트로 변환
@@ -434,7 +434,8 @@ def insert_market_size_statistics(stats: List[CommercialDistrictStatistics]):
                     stat.std_val,
                     stat.max_val,
                     stat.min_val,
-                    stat.j_score,
+                    stat.j_score_rank,
+                    stat.j_score_per,
                     stat.stat_level,
                     stat.ref_date,
                 )
@@ -477,8 +478,8 @@ def insert_usage_count_statistics(stats: List[CommercialDistrictStatistics]):
             INSERT INTO COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS
             (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
             BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, STAT_LEVEL, REF_DATE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             # 데이터를 튜플 리스트로 변환
@@ -495,7 +496,8 @@ def insert_usage_count_statistics(stats: List[CommercialDistrictStatistics]):
                     stat.std_val,
                     stat.max_val,
                     stat.min_val,
-                    stat.j_score,
+                    stat.j_score_rank,
+                    stat.j_score_per,
                     stat.stat_level,
                     stat.ref_date,
                 )
@@ -538,8 +540,8 @@ def insert_average_sales_statistics(stats: List[CommercialDistrictStatistics]):
             INSERT INTO COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS
             (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
             BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, STAT_LEVEL, REF_DATE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             # 데이터를 튜플 리스트로 변환
@@ -556,7 +558,8 @@ def insert_average_sales_statistics(stats: List[CommercialDistrictStatistics]):
                     stat.std_val,
                     stat.max_val,
                     stat.min_val,
-                    stat.j_score,
+                    stat.j_score_rank,
+                    stat.j_score_per,
                     stat.stat_level,
                     stat.ref_date,
                 )
@@ -599,8 +602,8 @@ def insert_sub_district_density_statistics(stats: List[CommercialDistrictStatist
             INSERT INTO COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS
             (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
             BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, STAT_LEVEL, REF_DATE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             # 데이터를 튜플 리스트로 변환
@@ -617,7 +620,8 @@ def insert_sub_district_density_statistics(stats: List[CommercialDistrictStatist
                     stat.std_val,
                     stat.max_val,
                     stat.min_val,
-                    stat.j_score,
+                    stat.j_score_rank,
+                    stat.j_score_per,
                     stat.stat_level,
                     stat.ref_date,
                 )
@@ -660,8 +664,8 @@ def insert_average_payment_statistics(stats: List[CommercialDistrictStatistics])
             INSERT INTO COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS
             (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
             BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, STAT_LEVEL, REF_DATE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             # 데이터를 튜플 리스트로 변환
@@ -678,7 +682,8 @@ def insert_average_payment_statistics(stats: List[CommercialDistrictStatistics])
                     stat.std_val,
                     stat.max_val,
                     stat.min_val,
-                    stat.j_score,
+                    stat.j_score_rank,
+                    stat.j_score_per,
                     stat.stat_level,
                     stat.ref_date,
                 )
