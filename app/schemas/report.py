@@ -235,6 +235,15 @@ class LocalStoreMovePopData(BaseModel):
         from_attributes = True
 
 
+# 입지분석 읍/면/동 소분류 J_Score 가중치 평균 합
+class LocalStoreLIJSWeightedAverage(BaseModel):
+    store_business_number: str
+    loc_info_j_score_average: float
+
+    class Config:
+        from_attributes = True
+
+
 # 상권분석 읍/면/동 소분류 J_Score 가중치 평균 합
 class LocalStoreCDJSWeightedAverage(BaseModel):
     store_business_number: str

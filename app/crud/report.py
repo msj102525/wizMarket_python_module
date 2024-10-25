@@ -17,6 +17,7 @@ from app.schemas.report import (
     LocalStoreCDJSWeightedAverage,
     LocalStoreCDWeekdayTiemAveragePercent,
     LocalStoreCommercialDistrictJscoreAverage,
+    LocalStoreLIJSWeightedAverage,
     LocalStoreLocInfoData,
     LocalStoreLocInfoJscoreData,
     LocalStoreMainCategoryCount,
@@ -409,6 +410,61 @@ def select_local_store_population_data(batch: List[LocalStoreSubdistrictId]):
 
 
 ##################### 입지분석 J_SCORE 가중치 평균 ##############################
+def select_local_store_loc_info_j_score_average_data(
+    batch: List[LocalStoreSubdistrictId],
+) -> List[LocalStoreLIJSWeightedAverage]:
+    logger = logging.getLogger(__name__)
+    results = []
+
+    try:
+        with get_db_connection() as connection:
+            cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+            # sub_district_id 리스트 생성
+            sub_district_ids = [store_info.sub_district_id for store_info in batch]
+
+            # IN 절을 사용하여 한 번에 조회
+            select_query = """
+                SELECT
+                    SUB_DISTRICT_ID,
+                    J_SCORE_PER
+                FROM
+                    LOC_INFO_STATISTICS
+                WHERE TARGET_ITEM = 'j_score_avg'
+                AND SUB_DISTRICT_ID IN ({})
+                AND REF_DATE = (SELECT MAX(REF_DATE) FROM LOC_INFO_STATISTICS)
+                ;
+            """
+            in_params = ",".join(["%s"] * len(sub_district_ids))
+            query = select_query.format(in_params)
+
+            cursor.execute(query, sub_district_ids)
+
+            rows = cursor.fetchall()
+
+            loc_info_dict = {row["SUB_DISTRICT_ID"]: row for row in rows}
+
+            # batch의 순서를 유지하면서 결과 생성
+            for store_info in batch:
+                if store_info.sub_district_id in loc_info_dict:
+                    loc_info_data = loc_info_dict[store_info.sub_district_id]
+
+                    results.append(
+                        LocalStoreLIJSWeightedAverage(
+                            store_business_number=store_info.store_business_number,
+                            loc_info_j_score_average=(
+                                loc_info_data["J_SCORE_PER"] or 0
+                            ),
+                        ),
+                    )
+
+            return results
+
+    except Exception as e:
+        logger.error(f"LocalStoreLIJSWeightedAverage 가져오는 중 오류 발생: {e}")
+        raise
+
+
 ##################### 입지분석 데이터 ##############################
 def select_local_store_loc_info_data(
     batch: List[LocalStoreSubdistrictId],
@@ -1781,6 +1837,41 @@ def insert_or_update_loc_info_move_pop_data_batch(
 
     except Exception as e:
         logging.error(f"Error inserting/updating loc info move_pop data: {e}")
+        raise
+
+
+# 입지분석 읍/면/동 J_Score 가중치 평균 합
+def insert_or_update_loc_info_j_score_average_data_batch(
+    batch: List[LocalStoreLIJSWeightedAverage],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        LOC_INFO_J_SCORE_AVERAGE
+                    ) VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        LOC_INFO_J_SCORE_AVERAGE = VALUES(LOC_INFO_J_SCORE_AVERAGE)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.loc_info_j_score_average,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating LocalStoreLIJSWeightedAverage data: {e}"
+        )
         raise
 
 
