@@ -14,6 +14,7 @@ from app.db.connect import (
 from app.schemas.report import (
     LocalStoreBasicInfo,
     LocalStoreCDDistrictAverageSalesTop5,
+    LocalStoreCDJSWeightedAverage,
     LocalStoreCDWeekdayTiemAveragePercent,
     LocalStoreCommercialDistrictJscoreAverage,
     LocalStoreLocInfoData,
@@ -742,6 +743,84 @@ def select_local_store_loc_info_move_pop_data(
         raise
 
 
+##################### 상권분석 J_Score 가중치 평균 ##############################
+
+
+def select_commercial_district_j_score_weighted_average_data(
+    mappings: List[LocalStoreMappingSubDistrictDetailCategoryId],
+) -> List[LocalStoreCDJSWeightedAverage]:
+
+    logger = logging.getLogger(__name__)
+
+    store_mappings: Dict[str, Dict] = defaultdict(
+        lambda: {"sub_district_id": None, "detail_categories": set()}
+    )
+
+    for mapping in mappings:
+        store_data = store_mappings[mapping.store_business_number]
+        store_data["sub_district_id"] = mapping.sub_district_id
+        store_data["detail_categories"].add(mapping.detail_category_id)
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                store_j_scores: Dict[str, Dict[str, List[float]]] = defaultdict(
+                    lambda: {
+                        "j_score": [],
+                    }
+                )
+
+                for store_number, store_data in store_mappings.items():
+                    detail_categories_str = ", ".join(
+                        map(str, store_data["detail_categories"])
+                    )
+
+                    query = """
+                    SELECT
+                        BIZ_DETAIL_CATEGORY_ID,
+                        J_SCORE_PER_AVG
+                    FROM
+                        COMMERCIAL_DISTRICT_WEIGHTED_AVERAGE
+                    WHERE SUB_DISTRICT_ID = %s
+                    AND BIZ_DETAIL_CATEGORY_ID IN ({});
+                    """.format(
+                        detail_categories_str
+                    )
+
+                    cursor.execute(query, (store_data["sub_district_id"],))
+                    scores = cursor.fetchall()
+
+                    store_scores = store_j_scores[store_number]
+                    for score in scores:
+                        if score["BIZ_DETAIL_CATEGORY_ID"] is not None:
+                            if score["J_SCORE_PER_AVG"] is not None:
+                                store_scores["j_score"].append(
+                                    float(score["J_SCORE_PER_AVG"])
+                                )
+
+                results = []
+                for store_number, scores in store_j_scores.items():
+                    try:
+                        result = LocalStoreCDJSWeightedAverage(
+                            store_business_number=store_number,
+                            commercial_district_j_score_average=(
+                                mean(scores["j_score"]) if scores["j_score"] else 0.0
+                            ),
+                        )
+                        results.append(result)
+                    except Exception as e:
+                        logger.error(
+                            f"Error calculating averages for store {store_number}: {e}"
+                        )
+                        continue
+
+                return results
+
+    except Exception as e:
+        logger.error(f"Error processing batch J scores weighted: {e}")
+        raise
+
+
 ##################### 상권분석 읍/면/동 대분류 갯수 ##############################
 def select_commercial_district_main_detail_category_count_data(
     batch: List[LocalStoreSubdistrictId],
@@ -901,11 +980,11 @@ def select_commercial_district_j_score_average_data(
                         COALESCE(CDMSS.BIZ_DETAIL_CATEGORY_ID, CDUCS.BIZ_DETAIL_CATEGORY_ID, 
                                 CDASS.BIZ_DETAIL_CATEGORY_ID, CDSDDS.BIZ_DETAIL_CATEGORY_ID, 
                                 CDAPS.BIZ_DETAIL_CATEGORY_ID) AS BIZ_DETAIL_CATEGORY_ID,
-                        CDMSS.J_SCORE AS MARKET_SIZE_J,
-                        CDUCS.J_SCORE AS USAGE_COUNT_J,
-                        CDASS.J_SCORE AS AVERAGE_SALES_J,
-                        CDSDDS.J_SCORE AS SUB_DISTRICT_DENSITY_J,
-                        CDAPS.J_SCORE AS AVERAGE_PAYMENT_J
+                        CDMSS.J_SCORE_PER AS MARKET_SIZE_J,
+                        CDUCS.J_SCORE_PER AS USAGE_COUNT_J,
+                        CDASS.J_SCORE_PER AS AVERAGE_SALES_J,
+                        CDSDDS.J_SCORE_PER AS SUB_DISTRICT_DENSITY_J,
+                        CDAPS.J_SCORE_PER AS AVERAGE_PAYMENT_J
                     FROM
                         SUB_DISTRICT SD
                     LEFT JOIN COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS CDMSS 
@@ -1702,6 +1781,41 @@ def insert_or_update_loc_info_move_pop_data_batch(
 
     except Exception as e:
         logging.error(f"Error inserting/updating loc info move_pop data: {e}")
+        raise
+
+
+# 상권분석 읍/면/동 소분류 J_Score 가중치 평균 합
+def insert_or_update_commercial_district_j_score_weighted_average_data_batch(
+    batch: List[LocalStoreCDJSWeightedAverage],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        COMMERCIAL_DISTRICT_J_SCORE_AVERAGE
+                    ) VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        COMMERCIAL_DISTRICT_J_SCORE_AVERAGE = VALUES(COMMERCIAL_DISTRICT_J_SCORE_AVERAGE)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.commercial_district_j_score_average,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating commercial_district top5 top3 data: {e}"
+        )
         raise
 
 
