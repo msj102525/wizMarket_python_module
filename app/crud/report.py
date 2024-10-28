@@ -431,6 +431,7 @@ def select_local_store_loc_info_j_score_average_data(
                 FROM
                     LOC_INFO_STATISTICS
                 WHERE TARGET_ITEM = 'j_score_avg'
+                AND STAT_LEVEL = '전국'
                 AND SUB_DISTRICT_ID IN ({})
                 AND REF_DATE = (SELECT MAX(REF_DATE) FROM LOC_INFO_STATISTICS)
                 ;

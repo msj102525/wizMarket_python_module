@@ -1000,7 +1000,7 @@ def insert_or_update_commercial_district_top5_top3_data():
 
 if __name__ == "__main__":
     # insert_or_update_local_store_info()  # 438.92 seconds
-    insert_or_update_local_store_loc_info_j_score_average_data()  #
+    insert_or_update_local_store_loc_info_j_score_average_data()  #  405.20 seconds
     # insert_or_update_local_store_top5_menu()  # 2916.64 seconds / 57.32 seconds
     # insert_or_update_local_store_population_data()  # 281.83 seconds
     # insert_or_update_local_store_loc_info_data()  # 284.88 seconds 125000건 정도 데이터 빔
