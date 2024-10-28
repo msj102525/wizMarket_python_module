@@ -247,9 +247,9 @@ def insert_mz_population_statistics(data):
             insert_query = """
                 INSERT INTO population_info_mz_statistics (
                     city_id, district_id, sub_district_id, ref_date, 
-                    avg_val, med_val, std_val, max_val, min_val, j_score, stat_level, created_at
+                    avg_val, med_val, std_val, max_val, min_val, j_score_rank, j_score_per, stat_level, created_at
                 ) VALUES (%(city_id)s, %(district_id)s, %(sub_district_id)s, %(ref_date)s, 
-                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, %(j_score)s, %(stat_level)s, now())
+                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, %(j_score_rank)s, %(j_score_per)s, %(stat_level)s, now())
             """
 
             # 데이터 리스트를 반복하여 인서트
@@ -260,7 +260,7 @@ def insert_mz_population_statistics(data):
                     # 딕셔너리로 변환하여 SQL 인서트
                     cursor.execute(insert_query, validated_record.dict())
                 except ValueError as e:
-                    logger(f"Data Validation Error: {e}")
+                    logger.error(f"Data Validation Error: {e}")
 
             # 커밋
             connection.commit()

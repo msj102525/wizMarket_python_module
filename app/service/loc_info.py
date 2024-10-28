@@ -25,29 +25,17 @@ def fetch_all_region_id():
     all_region_list = get_all_region_id()
     return all_region_list
 
-# Global WebDriver instance
-global_driver = None
-
-
-def setup_global_driver():
-    global global_driver
-    if global_driver is None:
-        options = Options()
-        options.add_argument("--start-fullscreen")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-
-        # WebDriver Manager를 이용해 ChromeDriver 자동 관리
-        service = Service(ChromeDriverManager().install())
-        global_driver = webdriver.Chrome(service=service, options=options)
-
-    return global_driver
-
 
 def crawl_keyword(region_data, connection, insert_count):
      # 글로벌 드라이버 사용
-    global global_driver
-    driver = setup_global_driver()
+    options = Options()
+    options.add_argument("--start-fullscreen")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    # WebDriver Manager를 이용해 ChromeDriver 자동 관리
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
 
     try:
         driver.get("https://sg.sbiz.or.kr/godo/index.sg")
@@ -112,6 +100,8 @@ def crawl_keyword(region_data, connection, insert_count):
                     sub_district_id=region_data['sub_district_id'],
                     y_m=year_month,
                     **data,
+                    created_at = datetime.now(), 
+                    updated_at = datetime.now()
                 )
                 connection.commit()
                     

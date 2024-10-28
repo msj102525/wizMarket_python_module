@@ -17,12 +17,12 @@ def insert_by_date():
     for date_str in date_list:
         # 날짜를 각 반복 시마다 fetch_mz_population_and_insert 함수에 전달
         print(date_str, '시작')
-        fetch_mz_population_and_insert(date_str)
+        fetch_mz_population_and_insert_j_score_rank(date_str)
         print(date_str, '끝')
 
 
-def fetch_mz_population_and_insert(ref_date):
-    # 전국 범위
+def fetch_mz_population_and_insert_j_score_rank(ref_date):
+    # # 전국 범위
     # 1. city_id, district_id, sub_district_id 값 리스트로 조회
     region_id_list = select_all_region_id()
 
@@ -53,7 +53,7 @@ def fetch_mz_population_and_insert(ref_date):
         for item in nation_mz_pop_by_region
     ]
 
-    # 4. J-Score 계산
+    # 4. J-Score-Rank 계산
     nation_mz_pop_values_rank = sorted(nation_mz_pop_values, reverse=True)  # 내림차순으로 정렬
 
     for item in nation_mz_pop_by_region:
@@ -68,7 +68,19 @@ def fetch_mz_population_and_insert(ref_date):
             j_score = 0  # mz_pop이 0인 경우 j_score도 0
 
         # j_score를 각 항목에 추가
-        item["j_score"] = j_score
+        item["j_score_rank"] = j_score
+
+    # 5. J-Score-Per 계산
+    max_mz_pop = max(nation_mz_pop_values)  # max값 찾기
+
+    for item in nation_mz_pop_by_region:
+        mz_pop = item["mz_pop"]
+        if mz_pop > 0:
+            j_score = (mz_pop / max_mz_pop) * 10  # max값 기준으로 계산
+        else:
+            j_score = 0
+
+        item["j_score_per"] = j_score
 
     for item in nation_mz_pop_by_region:
         item['stat_level'] = '전국'
@@ -76,8 +88,6 @@ def fetch_mz_population_and_insert(ref_date):
 
     # 인서트용 이름만 바꾸기
     nation_mz_pop_for_insert = nation_mz_pop_by_region
-    # 인서트
-    print(len(nation_mz_pop_for_insert), ref_date)
     insert_mz_population_statistics(nation_mz_pop_for_insert)
 
     # 시/도 범위
@@ -93,7 +103,6 @@ def fetch_mz_population_and_insert(ref_date):
             sub_district_id=region.sub_district_id,
             ref_date=ref_date
         )
-        # 조회된 데이터를 리스트에 추가
         city_mz_pop_by_region.extend(city_mz_pop_age_by_region_list)
 
     # Pydantic 객체를 딕셔너리로 변환하여 작업
@@ -106,11 +115,14 @@ def fetch_mz_population_and_insert(ref_date):
     for item in city_mz_pop_dicts:
         city_grouped_mz_pop[item['city_id']].append(item['mz_pop'])
 
-    # 각 city_id 그룹 내에서 j_score 계산
+    # 3. 각 city_id 그룹 내에서 j_score_rank 계산 및 통계 계산
     for city_id, mz_pop_list in city_grouped_mz_pop.items():
-        mz_pop_list_sorted = sorted(mz_pop_list, reverse=True)
+        # 통계 계산 함수 호출
+        statistics = calculate_statistics(mz_pop_list)
 
-        # 각 항목에 대해 j_score 계산
+        # 각 항목에 대해 j_score_rank 계산
+        mz_pop_list_sorted = sorted(mz_pop_list, reverse=True)  # 내림차순 정렬
+
         for item in city_mz_pop_dicts:
             if item['city_id'] == city_id:
                 mz_pop = item['mz_pop']
@@ -118,23 +130,41 @@ def fetch_mz_population_and_insert(ref_date):
                     rank = mz_pop_list_sorted.index(mz_pop) + 1
                     totals = len(mz_pop_list_sorted)
 
-                    # j_score 계산
-                    j_score = 10 * ((totals + 1 - rank) / totals)
+                    # j_score_rank 계산
+                    j_score_rank = 10 * ((totals + 1 - rank) / totals)
                 else:
-                    j_score = 0
+                    j_score_rank = 0
 
-                # j_score를 추가
-                item['j_score'] = j_score
+                # j_score_rank를 추가
+                item['j_score_rank'] = j_score_rank
 
-    # 여기서 필드 추가 및 mz_pop 제거 작업 수행
+                # 통계 값을 추가
+                item['avg_val'] = statistics['average']
+                item['med_val'] = statistics['median']
+                item['std_val'] = statistics['stddev']
+                item['max_val'] = statistics['max']
+                item['min_val'] = statistics['min']
+
+    # 4. j_score_per 계산
+    # 각 city_id 그룹 내에서 max_mz_pop을 기준으로 j_score_per 계산
+    for city_id, mz_pop_list in city_grouped_mz_pop.items():
+        max_mz_pop = max(mz_pop_list)  # 해당 city_id에서 mz_pop 최대값
+
+        for item in city_mz_pop_dicts:
+            if item['city_id'] == city_id:
+                mz_pop = item['mz_pop']
+                if mz_pop > 0 and max_mz_pop > 0:
+                    j_score_per = (mz_pop / max_mz_pop) * 10  # max값 기준으로 j_score_per 계산
+                else:
+                    j_score_per = 0
+
+                # j_score_per를 추가
+                item['j_score_per'] = j_score_per
+
+    # 5. 각 항목에 stat_level과 기타 필요한 필드 추가 및 mz_pop 제거
     for item in city_mz_pop_dicts:
         # 필요한 필드 추가
         item['district_id'] = None
-        item['avg_val'] = None
-        item['med_val'] = None
-        item['std_val'] = None
-        item['max_val'] = None
-        item['min_val'] = None
         item['stat_level'] = '시/도'
 
         # mz_pop 필드 제거
@@ -143,13 +173,10 @@ def fetch_mz_population_and_insert(ref_date):
 
     # 인서트용 이름만 바꾸기
     city_mz_pop_for_insert = city_mz_pop_dicts
-    # 인서트
-    print(len(city_mz_pop_for_insert), ref_date)
     insert_mz_population_statistics(city_mz_pop_for_insert)
-    
 
     # 시/군/구 범위
-    # 1. city_id, sub_district_id 값 리스트로 조회
+    # 1. district_id, sub_district_id 값 리스트로 조회
     district_id_sub_district_id_list = select_district_id_sub_district_id()
 
     # 2. 각 지역에 해당하는 mz 세대 인구 수 값 조회
@@ -161,7 +188,6 @@ def fetch_mz_population_and_insert(ref_date):
             sub_district_id=region.sub_district_id,
             ref_date=ref_date
         )
-        # 조회된 데이터를 리스트에 추가
         district_mz_pop_by_region.extend(district_mz_pop_age_by_region_list)
 
     # Pydantic 객체를 딕셔너리로 변환하여 작업
@@ -174,11 +200,15 @@ def fetch_mz_population_and_insert(ref_date):
     for item in district_mz_pop_dicts:
         district_grouped_mz_pop[item['district_id']].append(item['mz_pop'])
 
-    # 각 district_id 그룹 내에서 j_score 계산
+    # 3. 각 district_id 그룹 내에서 j_score_rank 계산 및 통계 계산
     for district_id, mz_pop_list in district_grouped_mz_pop.items():
+        # 통계 계산 함수 호출
+        statistics = calculate_statistics(mz_pop_list)
+
+        # mz_pop_list 내림차순 정렬
         mz_pop_list_sorted = sorted(mz_pop_list, reverse=True)
 
-        # 각 항목에 대해 j_score 계산
+        # 각 항목에 대해 j_score_rank 계산
         for item in district_mz_pop_dicts:
             if item['district_id'] == district_id:
                 mz_pop = item['mz_pop']
@@ -186,23 +216,41 @@ def fetch_mz_population_and_insert(ref_date):
                     rank = mz_pop_list_sorted.index(mz_pop) + 1
                     totals = len(mz_pop_list_sorted)
 
-                    # j_score 계산
-                    j_score = 10 * ((totals + 1 - rank) / totals)
+                    # j_score_rank 계산
+                    j_score_rank = 10 * ((totals + 1 - rank) / totals)
                 else:
-                    j_score = 0
+                    j_score_rank = 0
 
-                # j_score를 추가
-                item['j_score'] = j_score
+                # j_score_rank 추가
+                item['j_score_rank'] = j_score_rank
 
-    # 여기서 필드 추가 및 mz_pop 제거 작업 수행
+                # 통계 값을 추가
+                item['avg_val'] = statistics['average']
+                item['med_val'] = statistics['median']
+                item['std_val'] = statistics['stddev']
+                item['max_val'] = statistics['max']
+                item['min_val'] = statistics['min']
+
+    # 4. j_score_per 계산
+    # 각 district_id 그룹 내에서 max_mz_pop을 기준으로 j_score_per 계산
+    for district_id, mz_pop_list in district_grouped_mz_pop.items():
+        max_mz_pop = max(mz_pop_list)  # 해당 district_id에서 mz_pop 최대값
+
+        for item in district_mz_pop_dicts:
+            if item['district_id'] == district_id:
+                mz_pop = item['mz_pop']
+                if mz_pop > 0 and max_mz_pop > 0:
+                    j_score_per = (mz_pop / max_mz_pop) * 10  # max값 기준으로 j_score_per 계산
+                else:
+                    j_score_per = 0
+
+                # j_score_per 추가
+                item['j_score_per'] = j_score_per
+
+    # 5. 각 항목에 stat_level 및 필요한 필드 추가, mz_pop 제거
     for item in district_mz_pop_dicts:
         # 필요한 필드 추가
         item['city_id'] = None
-        item['avg_val'] = None
-        item['med_val'] = None
-        item['std_val'] = None
-        item['max_val'] = None
-        item['min_val'] = None
         item['stat_level'] = '시/군/구'
 
         # mz_pop 필드 제거
@@ -211,9 +259,8 @@ def fetch_mz_population_and_insert(ref_date):
 
     # 인서트용 이름만 바꾸기
     district_mz_pop_for_insert = district_mz_pop_dicts
-    # 인서트
-    print(len(district_mz_pop_for_insert), ref_date)
     insert_mz_population_statistics(district_mz_pop_for_insert)
+
 
 
 

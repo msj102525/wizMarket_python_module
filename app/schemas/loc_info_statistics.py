@@ -29,7 +29,7 @@ class NationLocInfoOutPut(BaseModel):
     sub_district_id: int
     ref_date: date
     reference_id: int
-    target_item:int
+    target_item:  Optional[int]
 
 
     class Config:
@@ -41,7 +41,8 @@ class CityLocInfoOutPut(BaseModel):
     sub_district_id: int
     ref_date: date
     reference_id: int
-    target_item:int
+    target_item:  Optional[int]
+
 
 
     class Config:
@@ -53,7 +54,7 @@ class DistrictLocInfoOutPut(BaseModel):
     sub_district_id: int
     ref_date: date
     reference_id: int
-    target_item:int
+    target_item:  Optional[int]
 
 
     class Config:
@@ -71,9 +72,80 @@ class InsertLocInfoStat(BaseModel):
     std_val: Optional[float]
     max_val: Optional[int]
     min_val: Optional[int]
-    j_score: float
+    j_score_rank: Optional[float]
+    j_score_per: Optional[float]
     ref_date: date
     stat_level: str
 
     class Config:
         from_attributes = True
+
+
+class LocInfoJScoreRank(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    target_item:str
+    j_score_rank:Optional[float]
+
+    class Config:
+        from_attributes = True
+
+
+class MzPopJScoreRank(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    j_score_rank:Optional[float]
+
+    class Config:
+        from_attributes = True
+
+
+class LocInfoJScorePer(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    target_item:str
+    j_score_per:Optional[float]
+
+    class Config:
+        from_attributes = True
+
+
+class MzPopJScorePer(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    j_score_per:Optional[float]
+    
+    class Config:
+        from_attributes = True
+
+
+
+
+class InsertLocInfoAvgRankJscore(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    average_j_score: float
+
+    class Config:
+        from_attributes = True
+
+
+class SelectOldPerJscore(BaseModel):
+    city_id: Optional[int]
+    district_id: Optional[int]
+    sub_district_id: int
+    target_item: str
+    ref_date: date
+    stat_level: str
+    per_j_score: float
+
+    class Config:
+        from_attributes = True
+
+
+
