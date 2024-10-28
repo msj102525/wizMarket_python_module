@@ -467,42 +467,6 @@ def insert_or_update_commercial_district_j_score_weight_average_data_thread(
             future.result()
 
 
-# def select_commercial_district_j_score_weight_average_thread(
-#     commercial_district_sub_district_detail_category_id_list: List[
-#         CommercialDistrictSubDistrictDetailCategoryId
-#     ],
-#     batch_size: int = 800000,
-# ) -> List[CommercialDistrictWeightedAvgStatistics]:
-#     results = []
-#     with ThreadPoolExecutor(max_workers=12) as executor:
-#         futures = []
-#         for i in range(
-#             0, len(commercial_district_sub_district_detail_category_id_list), batch_size
-#         ):
-#             batch = commercial_district_sub_district_detail_category_id_list[
-#                 i : i + batch_size
-#             ]
-#             futures.append(
-#                 executor.submit(
-#                     crud_select_commercial_district_j_score_weight_average_data,
-#                     batch,
-#                 )
-#             )
-
-#         for future in tqdm(
-#             as_completed(futures),
-#             total=len(futures),
-#             desc="SELECT cd jscore average batches",
-#         ):
-#             try:
-#                 batch_result = future.result()
-#                 results.extend(batch_result)
-#             except Exception as e:
-#                 print(f"배치 처리 중 오류 발생: {e}")
-#                 continue
-
-
-#     return results
 def select_commercial_district_j_score_weight_average(
     commercial_district_sub_district_detail_category_id_list: List[
         CommercialDistrictSubDistrictDetailCategoryId
