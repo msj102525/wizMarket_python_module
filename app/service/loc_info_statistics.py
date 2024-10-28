@@ -377,26 +377,7 @@ def calculate_statistics(data):
     
 
 
-
-
-
-def test_list():
-    # 예시 리스트
-    list1 = [1, 2, 3]
-    list2 = [4, 5, 6]
-
-    # 방법 1: + 연산자를 사용하여 리스트 합치기
-    merged_list = list1 + list2
-    print("Merged List using +:", merged_list)
-
-    # 방법 2: extend() 메서드를 사용하여 리스트 합치기
-    list1.extend(list2)
-    print("Merged List using extend():", list1)
-
-
-
-
 if __name__ == "__main__":  
     # insert_by_date()
-    # test_list()
+
     execute_calculate_weighted_j_scores()
