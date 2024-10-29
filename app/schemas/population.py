@@ -2,9 +2,6 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-from app.schemas.loc_info import LocationInfoReportOutput
-from app.schemas.statistics_mod import LocStatisticsOutput
-
 
 class Population(BaseModel):
     pop_id: Optional[int] = None  # 자동 증가 필드
@@ -181,13 +178,7 @@ class PopulationOutput(BaseModel):
         from_attributes = True
 
 
-class PopulationJScoreOutput(BaseModel):
-    population_data: PopulationOutput
-    j_score_data: LocStatisticsOutput
-    loc_info_data: LocationInfoReportOutput
 
-    class Config:
-        from_attributes = True
 
 
 class Population_by_ages(BaseModel):

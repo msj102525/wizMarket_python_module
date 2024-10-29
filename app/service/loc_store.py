@@ -6,31 +6,25 @@ from app.service.population import *
 from app.db.connect import *
 import re
 from app.crud.loc_store import (
-    insert_data_to_loc_store,
-    check_previous_quarter_data_exists
+    insert_data_to_new_local_store,
+    update_data_to_new_local_store,
+    update_data_to_old_local_store,
+    get_store_business_number
 )
 from datetime import datetime
 
 
 
 # root_dir 경로 설정
-root_dir = r"C:\Users\jyes_semin\Desktop\locStoreData"
+root_dir = r"C:\Users\jyes_semin\Desktop\Data\locStoreData"
 
 # 1. 필요한 데이터를 미리 로드합니다.
 connection = get_db_connection()
 cities = load_all_cities(connection)
 districts = load_all_districts(connection)
 sub_districts = load_all_sub_districts(connection)
+store_business_number_list = get_store_business_number()
 
-
-# 1. 저번 분기를 'YYYY.Q/4' 형식으로 반환하는 함수 (DB 형식)
-def get_previous_quarter():
-    """저번 분기를 'YYYY.Q/4' 형식으로 반환하는 함수."""
-    now = datetime.now()
-    current_quarter = (now.month - 1) // 3 + 1
-    previous_year = now.year if current_quarter > 1 else now.year - 1
-    previous_quarter = current_quarter - 1 if current_quarter > 1 else 4
-    return f"{previous_year}.{previous_quarter}/4"
 
 
 # 2. 저번 분기를 'YYYY Q분기' 형식으로 변환 (폴더명 형식)
@@ -40,21 +34,6 @@ def convert_to_folder_quarter_format(db_quarter):
     quarter = quarter.split("/")[0]  # '1/4'에서 '1' 추출
     return f"{year} {quarter}분기"
 
-
-# 3. 디렉토리에서 저번 분기 폴더가 있는지 확인하는 함수
-def find_previous_quarter_folder(root_dir):
-    """저번 분기에 해당하는 폴더명을 찾아 반환하는 함수."""
-    previous_quarter = get_previous_quarter()  # DB 형식 'YYYY.Q/4'
-    previous_quarter_folder = convert_to_folder_quarter_format(
-        previous_quarter
-    )  # 폴더명 형식 'YYYY Q분기'
-
-    # 디렉토리 내에서 저번 분기 폴더명 찾기
-    for folder_name in os.listdir(root_dir):
-        if previous_quarter_folder in folder_name:
-            return os.path.join(root_dir, folder_name)
-
-    return None
 
 
 # 특정 분기 인서트 ###################################
@@ -79,38 +58,17 @@ def find_specific_quarter_folder(root_dir, year, quarter):
 
 
 # 2. 데이터 처리 및 로드
-# def process_csv_files():
 def process_csv_files(year, quarter):
-
+    # print(store_business_number_list)
     connection = get_db_connection()
 
-    # # 1. 저번 분기 계산
-    # previous_quarter = get_previous_quarter()
 
-    # # 2. 데이터베이스에 저번 분기 데이터가 있는지 확인 (crud/loc_store.py 함수 사용)
-    # exists = check_previous_quarter_data_exists(connection, previous_quarter)
-    # if exists:
-    #     print(f"저번 분기({previous_quarter}) 데이터가 이미 존재합니다. 인서트 생략.")
-    #     return
-
-    # # 3. 디렉토리에서 저번 분기 폴더를 찾음
-    # quarter_folder = find_previous_quarter_folder(root_dir)
-    # if not quarter_folder:
-    #     print(f"저번 분기({previous_quarter})에 해당하는 폴더를 찾을 수 없습니다.")
-    #     return
-
-    ############################################## 특정 분기 인서트
+    ################## 특정 분기 인서트
 
     # 1. 지정된 분기 계산
     specific_quarter = get_specific_quarter(year, quarter)
 
-    # 2. 데이터베이스에 지정된 분기 데이터가 있는지 확인
-    exists = check_previous_quarter_data_exists(connection, year, quarter)
-    if exists:
-        print(f"지정된 분기({specific_quarter}) 데이터가 이미 존재합니다. 인서트 생략.")
-        return
-
-    # 3. 디렉토리에서 지정된 분기 폴더를 찾음
+    # 2. 디렉토리에서 지정된 분기 폴더를 찾음
     quarter_folder = find_specific_quarter_folder(root_dir, year, quarter)
     if not quarter_folder:
         print(f"지정된 분기({specific_quarter})에 해당하는 폴더를 찾을 수 없습니다.")
@@ -125,27 +83,26 @@ def process_csv_files(year, quarter):
         # 필요한 다른 매핑도 추가 가능합니다.
     }
 
+    processed_store_business_numbers = set()
+    store_business_number_set = {item.store_business_number for item in store_business_number_list}
+    total = len(store_business_number_set)
+    now = 0
+    # 갯수 세기
+    update_new_count = 0
+    insert_new_count = 0
+    update_old_count = 0
+
     try:
         for subdir, dirs, files in os.walk(quarter_folder):
             for file in files:
                 if file.endswith(".csv"):
                     file_path = os.path.join(subdir, file)
 
-                    # 파일명에서 연도와 분기를 추출하여 year_quarter로 변환
-                    file_name = os.path.basename(file_path)
-                    year_quarter_raw = file_name.split("_")[-1].split(".")[
-                        0
-                    ]  # 예: '202103'
-                    year = year_quarter_raw[:4]  # '2021'
-                    quarter = (int(year_quarter_raw[4:6]) - 1) // 3 + 1  # 분기 계산
-
-                    year = int(year)
-                    quarter = int(quarter)
 
                     try:
                         # 파일을 읽어서 데이터프레임 생성
                         df = pd.read_csv(file_path, dtype=str, encoding="utf-8")
-
+                        
                         # 빈칸을 모두 None (즉, NULL)으로 처리
                         df = df.where(pd.notnull(df), None)
                         # 빈칸, 공백 문자열을 모두 None (즉, NULL)으로 처리
@@ -217,18 +174,19 @@ def process_csv_files(year, quarter):
                                 else None
                             )
 
-                            # 인서트할 데이터 준비
+
+                            # 데이터 형성
                             data = {
-                                "CITY_ID": city.city_id,
-                                "DISTRICT_ID": (
+                                "city_id": city.city_id,
+                                "district_id": (
                                     district.district_id if district else None
                                 ),
-                                "SUB_DISTRICT_ID": (
+                                "sub_district_id": (
                                     sub_district.sub_district_id
                                     if sub_district
                                     else None
                                 ),
-                                "STORE_BUSINESS_NUMBER": row["상가업소번호"],
+                                "store_business_number": row["상가업소번호"],
                                 "store_name": row["상호명"],
                                 "branch_name": row["지점명"],
                                 "large_category_code": row["상권업종대분류코드"],
@@ -269,25 +227,27 @@ def process_csv_files(year, quarter):
                                 "latitude": row["위도"],
                                 "local_year": year,
                                 "local_quarter": quarter,
+                                "is_exist" : 1
                             }
 
-                            # # 인서트할 데이터를 출력하고 자료형도 함께 출력
-                            # print("인서트할 데이터:")
-                            # print("인서트할 데이터 (총 항목 수: {}):".format(len(data)))
-                            # for key, value in data.items():
-                            #     print(f"{key}: {value} (자료형: {type(value)})")
-                            # print("-" * 80)  # 구분선
+                            # 조건 처리
+                            current_store_business_number = row["상가업소번호"]
+                            processed_store_business_numbers.add(current_store_business_number)
 
-                            # 데이터 삽입
-                            try:
-                                insert_data_to_loc_store(connection, data)
-                            except Exception as insert_error:
-                                print(f"데이터 삽입 오류: {insert_error}")
-                                rollback(connection)
-                                continue
+                            # 1. 현재 store_business_number가 리스트에 있을 때 -> 업데이트 처리
+                            if current_store_business_number in store_business_number_set:
+                                # 업데이트 작업
+                                update_data_to_new_local_store(data)
+                                update_new_count += 1
 
-                        # 파일 처리 후 커밋
-                        commit(connection)
+                            # 2. 현재 store_business_number가 리스트에 없을 때 -> 새로운 데이터 인서트
+                            else:                             
+                                # 인서트 작업
+                                insert_data_to_new_local_store(data)
+                                insert_new_count += 1
+                            
+                            now += 1
+                            print(f"총: {total}, 지금: {now}, 진행률: {now / total * 100:.2f}% 완료")
 
                     except Exception as e:
                         print(f"오류 발생 파일: {file_path}")
@@ -295,18 +255,29 @@ def process_csv_files(year, quarter):
                         rollback(connection)
                         continue  # 다음 파일로 계속 진행
 
+        # 3. 리스트에 있지만 현재 store_business_number 에 없을 때 -> 존재 여부 N 으로 업데이트
+        for store_number in store_business_number_set - processed_store_business_numbers:
+            old_data = {
+                "store_business_number": store_number,
+                "is_exist": 0
+            }
+            update_data_to_old_local_store(old_data)
+            update_old_count += 1
+
     except Exception as e:
         print(f"Unexpected error during processing: {e}")
         rollback(connection)
     finally:
         close_connection(connection)
-
+        print('업데이트 된 기존 매장 수 : ', update_new_count)
+        print('새로 생긴 매장 수 : ', insert_new_count)
+        print('없어진 매장 수 : ', update_old_count)
 
 # 윈도우 PC를 종료하는 명령어
 def shutdown_windows():
     os.system("shutdown /s /t 1")
 
 
-# if __name__ == "__main__":
-#     process_csv_files(2024,2)
-#     # shutdown_windows()
+if __name__ == "__main__":
+    process_csv_files(2024,3)
+    # shutdown_windows()

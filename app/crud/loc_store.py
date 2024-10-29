@@ -1,26 +1,107 @@
 import pymysql
+from app.schemas.loc_store import LocalStoreBusinessNumber, LocalStore, LocalOldStore
+from app.db.connect import get_db_connection, close_connection, close_cursor, commit, rollback
 
-def check_previous_quarter_data_exists(connection, year, quarter):
-    """저번 분기의 데이터가 DB에 있는지 확인하는 함수"""
+# 기존 매장 코드 조회
+def get_store_business_number()-> LocalStoreBusinessNumber:
+    results = []
+    # 여기서 직접 DB 연결을 설정
+    connection = get_db_connection()
+    cursor = None
 
-    # SQL 쿼리 작성 (저번 분기의 데이터가 존재하는지 확인)
-    query = "SELECT COUNT(*) AS count FROM local_store WHERE local_year = %s AND local_quarter = %s"
-
-    with connection.cursor() as cursor:
-        cursor.execute(query, (year, quarter))
-        result = cursor.fetchone()
-
-    # count 값이 0이면 데이터가 없는 것
-    return result[0] > 0
-
-
-def insert_data_to_loc_store(connection, data):
     try:
+        query = """
+            SELECT 
+                STORE_BUSINESS_NUMBER
+            FROM 
+                local_store
+            WHERE 
+                (LOCAL_YEAR, LOCAL_QUARTER) = (
+                    SELECT LOCAL_YEAR, LOCAL_QUARTER
+                    FROM local_store
+                    ORDER BY LOCAL_YEAR DESC, LOCAL_QUARTER DESC
+                    LIMIT 1
+                );
+        """
+        query_params = []
+
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+        cursor.execute(query, query_params)
+        rows = cursor.fetchall()
+
+        for row in rows:
+            local_store_business_number = LocalStoreBusinessNumber(
+                store_business_number= row.get("STORE_BUSINESS_NUMBER"),
+            )
+            results.append(local_store_business_number)
+
+        return results
+
+    finally:
+        close_cursor(cursor)     
+        close_connection(connection) 
+
+
+# 기존 매장 업데이트
+def update_data_to_new_local_store(data_dict):
+    connection = get_db_connection()
+    cursor = None
+   
+    try:
+        data = LocalStore(**data_dict)
+
+        with connection.cursor() as cursor:
+            sql = """
+            UPDATE local_store
+            SET
+                city_id = %s, district_id = %s, sub_district_id = %s,  
+                store_business_number = %s, store_name = %s, branch_name = %s,
+                large_category_code = %s, large_category_name = %s,
+                medium_category_code = %s, medium_category_name = %s,
+                small_category_code = %s, small_category_name = %s,
+                industry_code = %s, industry_name = %s,
+                province_code = %s, province_name = %s, district_code = %s,
+                district_name = %s, administrative_dong_code = %s, administrative_dong_name = %s,
+                legal_dong_code = %s, legal_dong_name = %s,
+                lot_number_code = %s, land_category_code = %s, land_category_name = %s,
+                lot_main_number = %s, lot_sub_number = %s, lot_address = %s,
+                road_name_code = %s, road_name = %s, building_main_number = %s,
+                building_sub_number = %s, building_management_number = %s, building_name = %s,
+                road_name_address = %s, old_postal_code = %s, new_postal_code = %s,
+                dong_info = %s, floor_info = %s, unit_info = %s,
+                longitude = %s, latitude = %s, local_year = %s, local_quarter = %s,
+                CREATED_AT = now(), UPDATED_AT = now(),
+                IS_EXIST = %s
+            WHERE store_business_number = %s
+            """
+            
+            params = list(data.dict().values()) + [data.store_business_number]
+            # cursor.execute(sql, params)
+            # commit(connection)
+
+    except Exception as e:
+        print(f"Error updating data in local_store: {e}")
+        rollback(connection)  
+        raise
+
+    finally:
+        close_cursor(cursor)     
+        close_connection(connection) 
+
+
+
+# 신규 매장 인서트
+def insert_data_to_new_local_store(data_dict):
+    connection = get_db_connection()
+    try:
+        # Pydantic 모델로 검증 및 변환
+        data = LocalStore(**data_dict)
+
         with connection.cursor() as cursor:
             sql = """
             INSERT INTO local_store (
-                CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID,  
-                STORE_BUSINESS_NUMBER, store_name, branch_name,
+                city_id, district_id, sub_district_id,  
+                store_business_number, store_name, branch_name,
                 large_category_code, large_category_name,
                 medium_category_code, medium_category_name,
                 small_category_code, small_category_name,
@@ -35,7 +116,7 @@ def insert_data_to_loc_store(connection, data):
                 road_name_address, old_postal_code, new_postal_code,
                 dong_info, floor_info, unit_info,
                 longitude, latitude, local_year, local_quarter,
-                CREATED_AT, UPDATED_AT
+                CREATED_AT, UPDATED_AT, IS_EXIST
             ) VALUES (
                 %s, %s, %s, 
                 %s, %s, %s, 
@@ -51,71 +132,50 @@ def insert_data_to_loc_store(connection, data):
                 %s, %s, %s, 
                 %s, %s, %s, 
                 %s, %s, %s, 
-                %s, %s, %s, 
                 %s, %s, %s, %s,
-                NOW(), NOW()
+                NOW(), NOW(), %s
             )
             """
 
-            # 디버깅을 위해 각 항목을 개별적으로 테스트
-            try:
-                cursor.execute(
-                    sql,
-                    (
-                        data["CITY_ID"],
-                        data["DISTRICT_ID"],
-                        data["SUB_DISTRICT_ID"],
-                        data["STORE_BUSINESS_NUMBER"],
-                        data["store_name"],
-                        data["branch_name"],
-                        data["large_category_code"],
-                        data["large_category_name"],
-                        data["medium_category_code"],
-                        data["medium_category_name"],
-                        data["small_category_code"],
-                        data["small_category_name"],
-                        data["industry_code"],
-                        data["industry_name"],
-                        data["province_code"],
-                        data["province_name"],
-                        data["district_code"],
-                        data["district_name"],
-                        data["administrative_dong_code"],
-                        data["administrative_dong_name"],
-                        data["legal_dong_code"],
-                        data["legal_dong_name"],
-                        data["lot_number_code"],
-                        data["land_category_code"],
-                        data["land_category_name"],
-                        data["lot_main_number"],
-                        data["lot_sub_number"],
-                        data["lot_address"],
-                        data["road_name_code"],
-                        data["road_name"],
-                        data["building_main_number"],
-                        data["building_sub_number"],
-                        data["building_management_number"],
-                        data["building_name"],
-                        data["road_name_address"],
-                        data["old_postal_code"],
-                        data["new_postal_code"],
-                        data["dong_info"],
-                        data["floor_info"],
-                        data["unit_info"],
-                        data["longitude"],
-                        data["latitude"],
-                        data["local_year"],
-                        data["local_quarter"],
-                    ),
-                )
+            # 매개변수 생성 및 출력
+            params = list(data.dict().values())
+            # cursor.execute(sql, params)
+            # commit(connection)
 
-                connection.commit()
-
-            except Exception as e:
-                print(f"Error inserting specific data: {e}")
-                raise
-
-    except pymysql.MySQLError as e:
-        print(f"Error inserting data into local_store: {e}")
-        connection.rollback()
+    except Exception as e:
+        print(f"Error updating data in local_store: {e}")
+        rollback(connection)  
         raise
+
+    finally:
+        close_cursor(cursor)     
+        close_connection(connection) 
+
+
+# 없어진 매장 업데이트
+def update_data_to_old_local_store(data_dict):
+    connection = get_db_connection()
+   
+    try:
+        data = LocalOldStore(**data_dict)
+
+        with connection.cursor() as cursor:
+            sql = """
+            UPDATE local_store
+            SET
+                IS_EXIST = %s
+            WHERE store_business_number = %s
+            """
+            
+            params = list(data.dict().values()) + [data.store_business_number]
+            # cursor.execute(sql, params)
+            # commit(connection)
+
+    except Exception as e:
+        print(f"Error updating data in local_store: {e}")
+        rollback(connection)  
+        raise
+
+    finally:
+        close_cursor(cursor)     
+        close_connection(connection) 

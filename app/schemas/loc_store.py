@@ -2,6 +2,67 @@ from pydantic import BaseModel
 from typing import Optional
 
 
+
+
+class LocalStore(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    store_business_number: str
+    store_name: Optional[str]
+    branch_name: Optional[str]
+    large_category_code: Optional[str]
+    large_category_name: Optional[str]
+    medium_category_code: Optional[str]
+    medium_category_name: Optional[str]
+    small_category_code: Optional[str]
+    small_category_name: Optional[str]
+    industry_code: Optional[str]
+    industry_name: Optional[str]
+    province_code: Optional[str]
+    province_name: Optional[str]
+    district_code: Optional[str]
+    district_name: Optional[str]
+    administrative_dong_code: Optional[str]
+    administrative_dong_name: Optional[str]
+    legal_dong_code: Optional[str]
+    legal_dong_name: Optional[str]
+    lot_number_code: Optional[str]
+    land_category_code: Optional[str]
+    land_category_name: Optional[str]
+    lot_main_number: Optional[str]
+    lot_sub_number: Optional[str]
+    lot_address: Optional[str]
+    road_name_code: Optional[str]
+    road_name: Optional[str]
+    building_main_number: Optional[str]
+    building_sub_number: Optional[str]
+    building_management_number: Optional[str]
+    building_name: Optional[str]
+    road_name_address: Optional[str]
+    old_postal_code: Optional[str]
+    new_postal_code: Optional[str]
+    dong_info: Optional[str]
+    floor_info: Optional[str]
+    unit_info: Optional[str]
+    longitude: Optional[str]
+    latitude: Optional[str]
+    local_year: int
+    local_quarter: int
+    is_exist : bool
+
+    class Config:
+        from_attributes = True
+
+
+class LocalOldStore(BaseModel):
+    store_business_number: str
+    is_exist : bool
+
+    class Config:
+        from_attributes = True
+
+
 class FilterRequest(BaseModel):
     city: Optional[int] = None  # 기본값 None을 설정
     district: Optional[int] = None
@@ -162,4 +223,9 @@ class LocalStoreCityDistrictSubDistrict(BaseModel):
     class Config:
         from_attributes = True
 
-  
+
+class LocalStoreBusinessNumber(BaseModel):
+    store_business_number: str
+
+    class Config:
+        from_attributes = True

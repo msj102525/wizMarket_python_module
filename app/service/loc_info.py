@@ -14,32 +14,30 @@ import os, time
 from tqdm import tqdm
 import sys
 from app.crud.loc_info import *
-from selenium.common.exceptions import WebDriverException
 
 
 ###### 크롤링 #########
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
 from app.db.connect import get_db_connection, close_connection
 
+# 1. 가지고 있는 지역 id값 모두 조회
+def fetch_all_region_id():
+    all_region_list = get_all_region_id()
+    return all_region_list
 
 
 def crawl_keyword(region_data, connection, insert_count):
-
      # 글로벌 드라이버 사용
     options = Options()
     options.add_argument("--start-fullscreen")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu") 
 
     # WebDriver Manager를 이용해 ChromeDriver 자동 관리
-    try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
 
-        
-    except WebDriverException as e:
-        print(f"Error initializing Chrome driver: {e}")
-        return
     try:
         driver.get("https://sg.sbiz.or.kr/godo/index.sg")
 
@@ -57,10 +55,10 @@ def crawl_keyword(region_data, connection, insert_count):
 
         last_keyword = region_data['keyword'].split()[-1]
 
-        time.sleep(0.3)
+        time.sleep(0.5)
 
         try:
-            WebDriverWait(driver, 30).until(
+            WebDriverWait(driver, 60).until(
                 EC.presence_of_element_located((By.XPATH, "//div[@class='cell']"))
             )
             div_elements = driver.find_elements(By.XPATH, "//div[@class='cell']")
@@ -104,7 +102,8 @@ def crawl_keyword(region_data, connection, insert_count):
                     y_m=year_month,
                     **data,
                     created_at = datetime.now(), 
-                    updated_at = datetime.now()
+                    updated_at = datetime.now(),
+                    reference_id = 3
                 )
                 connection.commit()
                     
@@ -146,7 +145,6 @@ def parse_html(html_content):
 
 
 
-
 def insert_record(table_name: str, connection, insert_count, city_id, district_id, sub_district_id, **kwargs):
     try:
         with connection.cursor() as cursor:
@@ -172,33 +170,59 @@ def insert_record(table_name: str, connection, insert_count, city_id, district_i
         raise e
 
 
-def process_file_directly(region_data):
 
+
+
+def process_file_directly(all_region_list):
     connection = get_db_connection()
     insert_count = 0
 
     try:
-        insert_count += 1
-        crawl_keyword(region_data, connection, insert_count)
-        
+        for keyword_data in tqdm(
+            all_region_list, desc="Processing keywords from DB"
+        ):  # tqdm을 사용하여 진행 상황 표시
+            # 각 키워드에 대해 무조건 새로운 데이터를 삽입하거나 갱신
+            insert_count += 1
+
+            # keyword_data는 city_id, district_id, sub_district_id, keyword를 포함
+            crawl_keyword(keyword_data, connection, insert_count)
+
     finally:
         close_connection(connection)
-    print("Finished processing keyword:", region_data['keyword'])
 
 
 
 
 def process_keywords_from_db():
-    print("Starting to process keywords from DB")
     all_region_list = fetch_keywords_from_db()
+    new_region_list = all_region_list[2692:]
+
 
     with ThreadPoolExecutor(max_workers=5) as executor:
-        executor.map(process_file_directly, all_region_list)
+        # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
+        executor.map(lambda region: process_file_directly([region]), new_region_list)
 
-    print("Finished processing all keywords from DB")
 
+
+def begin_time():
+    time_1 = datetime.now()
+    print("Start Time:", time_1)
+    return time_1
+
+def finish_time(start_time):
+    time_2 = datetime.now()
+    taken_time = time_2 - start_time
+    print("End Time:", time_2)
+    print("Elapsed Time:", taken_time)
+
+
+def test():
+    all_region_list = fetch_keywords_from_db()
+    new_region_list = all_region_list[2692:]
+    print(new_region_list)
 
 if __name__=="__main__":
+    start = begin_time()
     process_keywords_from_db()
-
-
+    finish_time(start)
+    # test()
