@@ -529,7 +529,9 @@ def select_local_store_loc_info_data(
                             loc_info_shop_k=round(
                                 (loc_info_data["SHOP"] or 0) / 1000, 1
                             ),
-                            loc_info_income_won=round((loc_info_data["INCOME"] or 0) / 10000),
+                            loc_info_income_won=round(
+                                (loc_info_data["INCOME"] or 0) / 10000
+                            ),
                             loc_info_data_ref_date=loc_info_data["Y_M"],
                         )
                     )
@@ -561,7 +563,7 @@ def select_local_store_loc_info_j_score_data(
                 SELECT
                     SUB_DISTRICT_ID,
                     TARGET_ITEM,
-                    J_SCORE
+                    J_SCORE_PER
                 FROM LOC_INFO_STATISTICS
                 WHERE SUB_DISTRICT_ID IN (%s)
                 AND STAT_LEVEL = '전국'
@@ -576,7 +578,7 @@ def select_local_store_loc_info_j_score_data(
 
             # loc_info 점수 딕셔너리 생성
             loc_info_j_score_dict = {
-                (row["SUB_DISTRICT_ID"], row["TARGET_ITEM"]): row["J_SCORE"]
+                (row["SUB_DISTRICT_ID"], row["TARGET_ITEM"]): row["J_SCORE_PER"]
                 for row in loc_rows
             }
 
@@ -584,7 +586,7 @@ def select_local_store_loc_info_j_score_data(
             pop_select_query = """
                 SELECT
                     SUB_DISTRICT_ID,
-                    J_SCORE
+                    J_SCORE_PER
                 FROM POPULATION_INFO_MZ_STATISTICS
                 WHERE SUB_DISTRICT_ID IN (%s)
                 AND STAT_LEVEL = '전국'
@@ -597,7 +599,7 @@ def select_local_store_loc_info_j_score_data(
 
             # pop_info 점수 딕셔너리 생성
             pop_info_j_score_dict = {
-                row["SUB_DISTRICT_ID"]: row["J_SCORE"] for row in pop_rows
+                row["SUB_DISTRICT_ID"]: row["J_SCORE_PER"] for row in pop_rows
             }
 
             # 결과 생성
@@ -1708,7 +1710,7 @@ def insert_or_update_loc_info_data_batch(batch: List[LocalStoreLocInfoData]) -> 
 
 # 매장 읍/면/동 입지 정보 J_SCORE 넣기
 def insert_or_update_loc_info_j_score_data_batch(
-    batch: List[LocalStoreLocInfoData],
+    batch: List[LocalStoreLocInfoJscoreData],
 ) -> None:
     try:
         with get_service_report_db_connection() as connection:
@@ -1750,7 +1752,7 @@ def insert_or_update_loc_info_j_score_data_batch(
                         store_info.loc_info_average_spend_j_score,
                         store_info.loc_info_average_sales_j_score,
                         store_info.loc_info_house_j_score,
-                        store_info.loc_info_mz_population_j_score,
+                        store_info.population_mz_population_j_score,
                     )
                     for store_info in batch
                 ]
