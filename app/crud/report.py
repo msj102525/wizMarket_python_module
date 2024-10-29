@@ -529,7 +529,7 @@ def select_local_store_loc_info_data(
                             loc_info_shop_k=round(
                                 (loc_info_data["SHOP"] or 0) / 1000, 1
                             ),
-                            income_won=round((loc_info_data["INCOME"] or 0) / 10000),
+                            loc_info_income_won=round((loc_info_data["INCOME"] or 0) / 10000),
                             loc_info_data_ref_date=loc_info_data["Y_M"],
                         )
                     )
