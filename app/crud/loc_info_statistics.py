@@ -204,9 +204,11 @@ def insert_loc_info_statistics(connection, data):
             insert_query = """
                 INSERT INTO loc_info_statistics (
                     city_id, district_id, sub_district_id, reference_id, target_item,
-                    avg_val, med_val, std_val, max_val, min_val, j_score_rank, j_score_per, ref_date, stat_level, created_at
+                    avg_val, med_val, std_val, max_val, min_val, j_score_rank, j_score_per, j_score_avg, 
+                    ref_date, stat_level, created_at
                 ) VALUES (%(city_id)s, %(district_id)s, %(sub_district_id)s, %(reference_id)s, %(target_item)s,
-                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, %(j_score_rank)s, %(j_score_per)s, %(ref_date)s, %(stat_level)s, now())
+                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, %(j_score_rank)s, %(j_score_per)s, %(j_score_avg)s,
+                        %(ref_date)s, %(stat_level)s, now())
             """
 
             # 데이터 리스트를 반복하여 인서트
@@ -468,7 +470,7 @@ def select_mz_j_score_per(
 
 
 # 7. 가중치 적용 평균 j_score_rank 인서트용
-def insert_loc_info_statistics_avg_j_score(data):
+def insert_loc_info_statistics_avg_j_score(data, ref_date):
     connection = get_db_connection()
     cursor = connection.cursor(pymysql.cursors.DictCursor)
     logger = logging.getLogger(__name__)
@@ -480,15 +482,16 @@ def insert_loc_info_statistics_avg_j_score(data):
                 INSERT INTO loc_info_statistics (
                     city_id, district_id, sub_district_id, reference_id, target_item,
                     AVG_VAL, MED_VAL, STD_VAL, MAX_VAL, MIN_VAL,
-                    J_SCORE_RANK, J_SCORE_PER, REF_DATE, STAT_LEVEL, CREATED_AT
+                    J_SCORE_RANK, J_SCORE_PER, J_SCORE_AVG, REF_DATE, STAT_LEVEL, CREATED_AT
                 ) VALUES (
                     %(city_id)s, %(district_id)s, %(sub_district_id)s, 3, 'j_score_avg',
                     NULL, NULL, NULL, NULL, NULL, 
-                    %(j_score_rank)s, %(j_score_per)s, '2024-08-01', '전국', now()
+                    %(j_score_rank)s, %(j_score_per)s, %(j_score_avg)s, %(ref_date)s, '전국', now()
                 )
             """
             # 데이터 리스트를 반복하여 인서트
             for record in data:
+                record["ref_date"] = ref_date  # 각 레코드에 ref_date 추가
                 try:
                     cursor.execute(insert_query, record)  # 딕셔너리 형태로 인서트
                 except ValueError as e:

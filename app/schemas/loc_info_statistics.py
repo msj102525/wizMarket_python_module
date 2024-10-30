@@ -74,6 +74,7 @@ class InsertLocInfoStat(BaseModel):
     min_val: Optional[int]
     j_score_rank: Optional[float]
     j_score_per: Optional[float]
+    j_score_avg: Optional[float]
     ref_date: date
     stat_level: str
 

@@ -83,7 +83,7 @@ def process_nationwide(connection, ref_date, target_item):
 
     # J-Score 및 통계값 추가된 데이터를 가져옴
     updated_nation_info = process_j_score(nation_loc_info_by_region, filtered_values, '전국', target_item, statistics)
-    print("Nationwide:", updated_nation_info[:3])  # 데이터 일부만 출력하여 확인
+    # print("Nationwide:", updated_nation_info[:3])  # 데이터 일부만 출력하여 확인
 
     insert_loc_info_statistics(connection, updated_nation_info)  # 인서트 주석 처리
 
@@ -119,7 +119,7 @@ def process_city(connection, ref_date, target_item):
     for item in updated_city_info:
         item['district_id'] = None
 
-    print("City Level:", updated_city_info[:3])  # 데이터 일부만 출력하여 확인
+    # print("City Level:", updated_city_info[:3])  # 데이터 일부만 출력하여 확인
 
     insert_loc_info_statistics(connection, updated_city_info)  # 인서트 주석 처리
 
@@ -155,7 +155,7 @@ def process_district(connection, ref_date, target_item):
     for item in updated_district_info:
         item['city_id'] = None
 
-    print("District Level:", updated_district_info[:3])  # 데이터 일부만 출력하여 확인
+    # print("District Level:", updated_district_info[:3])  # 데이터 일부만 출력하여 확인
 
     insert_loc_info_statistics(connection, updated_district_info)  # 인서트 주석 처리
 
@@ -197,6 +197,13 @@ def process_j_score(region_info, filtered_values, stat_level, target_item, stati
         item_dict["j_score_per"] = j_score_per
         item_dict['stat_level'] = stat_level
         item_dict['target_item'] = target_item
+
+        # j_score_rank와 j_score_per의 평균으로 j_score_avg 계산
+        if j_score_rank is not None and j_score_per is not None:
+            item_dict['j_score_avg'] = (j_score_per + j_score_rank) / 2
+        else:
+            item_dict['j_score_avg'] = None
+        
 
         # 통계 값을 추가
         item_dict["avg_val"] = statistics["average"]
@@ -297,7 +304,7 @@ def calculate_weighted_j_scores(connection, target_items, ref_date):
 
     insert_data = prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank)
 
-    insert_loc_info_statistics_avg_j_score(insert_data)
+    insert_loc_info_statistics_avg_j_score(insert_data, ref_date)
 
     return final_j_score_per, final_j_score_rank
 
@@ -312,14 +319,20 @@ def prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank):
         city_id, district_id, sub_district_id = region_key
         j_score_per = adjusted_j_score_per.get(region_key, None)
         j_score_rank = adjusted_j_score_rank.get(region_key, None)
-        
+        # j_score_per와 j_score_rank가 None이 아닐 때 평균 계산
+        if j_score_per is not None and j_score_rank is not None:
+            j_score_avg = (j_score_per + j_score_rank) / 2
+        else:
+            j_score_avg = None
+
         # 인서트할 각 행 생성
         insert_row = {
             'city_id': city_id,
             'district_id': district_id,
             'sub_district_id': sub_district_id,
             'j_score_rank': j_score_rank,
-            'j_score_per': j_score_per
+            'j_score_per': j_score_per,
+            'j_score_avg':j_score_avg
         }
         insert_data.append(insert_row)
 
@@ -381,6 +394,5 @@ def calculate_statistics(data):
 
 
 if __name__ == "__main__":  
-    # insert_by_date()
-
+    insert_by_date()
     execute_calculate_weighted_j_scores()
