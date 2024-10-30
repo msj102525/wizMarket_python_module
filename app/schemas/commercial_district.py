@@ -242,6 +242,7 @@ class CommercialDistrictStatistics(BaseModel):
     min_val: float
     j_score_rank: float
     j_score_per: float
+    j_score: float
     stat_level: str
     ref_date: date
 
@@ -267,6 +268,7 @@ class CommercialDistrictWeightedAvgStatistics(BaseModel):
     biz_detail_category_id: int
     j_score_rank: float
     j_score_per: float
+    j_score: float
     stat_level: str
     ref_date: date
 

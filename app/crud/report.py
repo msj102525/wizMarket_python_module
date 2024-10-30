@@ -758,7 +758,6 @@ def select_local_store_loc_info_move_pop_data(
                 row["SUB_DISTRICT_ID"]: row["MOVE_POP"] or 0 for row in loc_rows
             }
 
-            # population mz 통계 조회 (시/도 평균 유동인구)
             pop_select_query = """
                 SELECT
                     SUB_DISTRICT_ID,

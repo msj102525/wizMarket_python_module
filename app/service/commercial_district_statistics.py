@@ -110,6 +110,8 @@ def calculate_j_score(data):
 
                 max_value = max([i.column_name for i in group_data])
                 j_score_per = 10 * (item.column_name / max_value)  # J-Score_Per 계산
+
+                j_score = (j_score_rank + j_score_per) / 2
             else:
                 j_score_rank = 0  # 컬럼값 0일 경우 J-Score는 0
                 j_score_per = 0
@@ -123,6 +125,7 @@ def calculate_j_score(data):
                     column_name,  # 시장 규모
                     j_score_rank,  # J-Score Rank
                     j_score_per,  # J-Score Percent
+                    j_score,  # J-Score 평균
                 )
             )
 
@@ -182,6 +185,7 @@ def process_group(group, ref_date, category_ids):
             min_val=statistics["min"],
             j_score_rank=j_score_data[5],  # 각 데이터의 j_score를 사용
             j_score_per=j_score_data[6],  # 각 데이터의 j_score를 사용
+            j_score=j_score_data[7],  # 각 데이터의 j_score를 사용
             stat_level="전국",
             ref_date=ref_date,
         )
@@ -502,14 +506,6 @@ def commercial_district_j_score_weighted_average_statistics():
     # print(commercial_district_j_score_weight_average_list[0])
     # print(commercial_district_j_score_weight_average_list[1])
     # print(commercial_district_j_score_weight_average_list[2])
-    # print(commercial_district_j_score_weight_average_list[3])
-    # print(commercial_district_j_score_weight_average_list[4])
-    # print(commercial_district_j_score_weight_average_list[5])
-    # print(commercial_district_j_score_weight_average_list[6])
-    # print(commercial_district_j_score_weight_average_list[7])
-    # print(commercial_district_j_score_weight_average_list[8])
-    # print(commercial_district_j_score_weight_average_list[9])
-    # print(commercial_district_j_score_weight_average_list[10])
     insert_or_update_commercial_district_j_score_weight_average_data_thread(
         commercial_district_j_score_weight_average_list
     )
