@@ -11,20 +11,22 @@ from app.crud.population_info_mz_statistics import (
 )
 import numpy as np
 from collections import defaultdict
+from app.db.connect import *
 
 def insert_by_date():
     date_list = ['2024-01-31', '2024-02-29', '2024-03-31', '2024-04-30', '2024-05-31', '2024-06-30', '2024-07-31', '2024-08-31', '2024-09-30']
+    connection = get_db_connection()
     for date_str in date_list:
         # 날짜를 각 반복 시마다 fetch_mz_population_and_insert 함수에 전달
         print(date_str, '시작')
-        fetch_mz_population_and_insert_j_score_rank(date_str)
+        fetch_mz_population_and_insert_j_score_rank(date_str, connection)
         print(date_str, '끝')
 
 
-def fetch_mz_population_and_insert_j_score_rank(ref_date):
+def fetch_mz_population_and_insert_j_score_rank(ref_date, connection):
     # # 전국 범위
     # 1. city_id, district_id, sub_district_id 값 리스트로 조회
-    region_id_list = select_all_region_id()
+    region_id_list = select_all_region_id(connection)
 
     # 2.각 지역에 해당하는 mz 세대 인구 수 값 조회
     # mz 는 1995~2010년 생 : 만 14~29세
@@ -63,12 +65,12 @@ def fetch_mz_population_and_insert_j_score_rank(ref_date):
             totals = len(nation_mz_pop_values)
 
             # j_score 계산
-            j_score = 10 * ((totals + 1 - rank) / totals)
+            j_score_rank = 10 * ((totals + 1 - rank) / totals)
         else:
-            j_score = 0  # mz_pop이 0인 경우 j_score도 0
+            j_score_rank = 0  # mz_pop이 0인 경우 j_score도 0
 
         # j_score를 각 항목에 추가
-        item["j_score_rank"] = j_score
+        item["j_score_rank"] = j_score_rank
 
     # 5. J-Score-Per 계산
     max_mz_pop = max(nation_mz_pop_values)  # max값 찾기
@@ -76,13 +78,16 @@ def fetch_mz_population_and_insert_j_score_rank(ref_date):
     for item in nation_mz_pop_by_region:
         mz_pop = item["mz_pop"]
         if mz_pop > 0:
-            j_score = (mz_pop / max_mz_pop) * 10  # max값 기준으로 계산
+            j_score_per = (mz_pop / max_mz_pop) * 10  # max값 기준으로 계산
         else:
-            j_score = 0
+            j_score_per = 0
 
-        item["j_score_per"] = j_score
+        item["j_score_per"] = j_score_per
+
+    
 
     for item in nation_mz_pop_by_region:
+        item['j_score'] = (item["j_score_rank"] + item["j_score_per"]) / 2 if item["j_score_rank"] > 0 and item["j_score_per"] > 0 else 0
         item['stat_level'] = '전국'
         del item['mz_pop']
 
@@ -92,7 +97,7 @@ def fetch_mz_population_and_insert_j_score_rank(ref_date):
 
     # 시/도 범위
     # 1. city_id, sub_district_id 값 리스트로 조회
-    city_id_sub_district_id_list = select_city_id_sub_district_id()
+    city_id_sub_district_id_list = select_city_id_sub_district_id(connection)
 
     # 2. 각 지역에 해당하는 mz 세대 인구 수 값 조회
     city_mz_pop_by_region = []
@@ -164,6 +169,7 @@ def fetch_mz_population_and_insert_j_score_rank(ref_date):
     # 5. 각 항목에 stat_level과 기타 필요한 필드 추가 및 mz_pop 제거
     for item in city_mz_pop_dicts:
         # 필요한 필드 추가
+        item['j_score'] = (item["j_score_rank"] + item["j_score_per"]) / 2 if item["j_score_rank"] > 0 and item["j_score_per"] > 0 else 0
         item['district_id'] = None
         item['stat_level'] = '시/도'
 
@@ -177,7 +183,7 @@ def fetch_mz_population_and_insert_j_score_rank(ref_date):
 
     # 시/군/구 범위
     # 1. district_id, sub_district_id 값 리스트로 조회
-    district_id_sub_district_id_list = select_district_id_sub_district_id()
+    district_id_sub_district_id_list = select_district_id_sub_district_id(connection)
 
     # 2. 각 지역에 해당하는 mz 세대 인구 수 값 조회
     district_mz_pop_by_region = []
@@ -250,6 +256,7 @@ def fetch_mz_population_and_insert_j_score_rank(ref_date):
     # 5. 각 항목에 stat_level 및 필요한 필드 추가, mz_pop 제거
     for item in district_mz_pop_dicts:
         # 필요한 필드 추가
+        item['j_score'] = (item["j_score_rank"] + item["j_score_per"]) / 2 if item["j_score_rank"] > 0 and item["j_score_per"] > 0 else 0
         item['city_id'] = None
         item['stat_level'] = '시/군/구'
 

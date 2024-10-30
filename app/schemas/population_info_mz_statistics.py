@@ -63,6 +63,7 @@ class InsertMzPopStat(BaseModel):
     min_val: Optional[int]
     j_score_rank: Optional[float]
     j_score_per: Optional[float]
+    j_score: Optional[float]
     stat_level: str
 
     class Config:

@@ -128,7 +128,7 @@ def commit(connection):
     try:
         if connection:
             connection.commit()
-            print("Transaction committed successfully.")
+            # print("Transaction committed successfully.")
     except pymysql.MySQLError as e:
         print(f"Error committing transaction: {e}")
 

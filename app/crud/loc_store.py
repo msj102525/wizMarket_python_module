@@ -76,7 +76,8 @@ def update_data_to_new_local_store(data_dict):
             """
             
             params = list(data.dict().values()) + [data.store_business_number]
-            # cursor.execute(sql, params)
+            # print(params)
+            cursor.execute(sql, params)
             # commit(connection)
 
     except Exception as e:
@@ -139,7 +140,7 @@ def insert_data_to_new_local_store(data_dict):
 
             # 매개변수 생성 및 출력
             params = list(data.dict().values())
-            # cursor.execute(sql, params)
+            cursor.execute(sql, params)
             # commit(connection)
 
     except Exception as e:
@@ -168,7 +169,7 @@ def update_data_to_old_local_store(data_dict):
             """
             
             params = list(data.dict().values()) + [data.store_business_number]
-            # cursor.execute(sql, params)
+            cursor.execute(sql, params)
             # commit(connection)
 
     except Exception as e:
