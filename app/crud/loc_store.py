@@ -43,15 +43,13 @@ def get_store_business_number()-> LocalStoreBusinessNumber:
 
 
 # 기존 매장 업데이트
-def update_data_to_new_local_store(data_dict):
-    connection = get_db_connection()
-    cursor = None
-   
+def update_data_to_new_local_store(cursor, data_dict):
+
     try:
         data = LocalStore(**data_dict)
 
-        with connection.cursor() as cursor:
-            sql = """
+
+        sql = """
             UPDATE local_store
             SET
                 city_id = %s, district_id = %s, sub_district_id = %s,  
@@ -75,108 +73,96 @@ def update_data_to_new_local_store(data_dict):
             WHERE store_business_number = %s
             """
             
-            params = list(data.dict().values()) + [data.store_business_number]
-            # print(params)
-            cursor.execute(sql, params)
-            # commit(connection)
+        params = list(data.dict().values()) + [data.store_business_number]
+        # print(params)
+        cursor.execute(sql, params)
+        # commit(connection)
 
     except Exception as e:
         print(f"Error updating data in local_store: {e}")
-        rollback(connection)  
         raise
 
-    finally:
-        close_cursor(cursor)     
-        close_connection(connection) 
+
 
 
 
 # 신규 매장 인서트
-def insert_data_to_new_local_store(data_dict):
-    connection = get_db_connection()
+def insert_data_to_new_local_store(cursor, data_dict):
     try:
-        # Pydantic 모델로 검증 및 변환
+        # Pydantic 모델로 데이터 검증 및 변환
         data = LocalStore(**data_dict)
 
-        with connection.cursor() as cursor:
-            sql = """
-            INSERT INTO local_store (
-                city_id, district_id, sub_district_id,  
-                store_business_number, store_name, branch_name,
-                large_category_code, large_category_name,
-                medium_category_code, medium_category_name,
-                small_category_code, small_category_name,
-                industry_code, industry_name,
-                province_code, province_name, district_code,
-                district_name, administrative_dong_code, administrative_dong_name,
-                legal_dong_code, legal_dong_name,
-                lot_number_code, land_category_code, land_category_name,
-                lot_main_number, lot_sub_number, lot_address,
-                road_name_code, road_name, building_main_number,
-                building_sub_number, building_management_number, building_name,
-                road_name_address, old_postal_code, new_postal_code,
-                dong_info, floor_info, unit_info,
-                longitude, latitude, local_year, local_quarter,
-                CREATED_AT, UPDATED_AT, IS_EXIST
-            ) VALUES (
-                %s, %s, %s, 
-                %s, %s, %s, 
-                %s, %s, 
-                %s, %s, 
-                %s, %s, 
-                %s, %s, 
-                %s, %s, %s, 
-                %s, %s, %s, 
-                %s, %s, 
-                %s, %s, %s, 
-                %s, %s, %s, 
-                %s, %s, %s, 
-                %s, %s, %s, 
-                %s, %s, %s, 
-                %s, %s, %s, %s,
-                NOW(), NOW(), %s
-            )
-            """
+        # 인서트 SQL 쿼리
+        sql = """
+        INSERT INTO local_store (
+            city_id, district_id, sub_district_id,  
+            store_business_number, store_name, branch_name,
+            large_category_code, large_category_name,
+            medium_category_code, medium_category_name,
+            small_category_code, small_category_name,
+            industry_code, industry_name,
+            province_code, province_name, district_code,
+            district_name, administrative_dong_code, administrative_dong_name,
+            legal_dong_code, legal_dong_name,
+            lot_number_code, land_category_code, land_category_name,
+            lot_main_number, lot_sub_number, lot_address,
+            road_name_code, road_name, building_main_number,
+            building_sub_number, building_management_number, building_name,
+            road_name_address, old_postal_code, new_postal_code,
+            dong_info, floor_info, unit_info,
+            longitude, latitude, local_year, local_quarter,
+            CREATED_AT, UPDATED_AT, IS_EXIST
+        ) VALUES (
+            %s, %s, %s, 
+            %s, %s, %s, 
+            %s, %s, 
+            %s, %s, 
+            %s, %s, 
+            %s, %s, 
+            %s, %s, %s, 
+            %s, %s, %s, 
+            %s, %s, 
+            %s, %s, %s, 
+            %s, %s, %s, 
+            %s, %s, %s, 
+            %s, %s, %s, 
+            %s, %s, %s, 
+            %s, %s, %s,
+            %s, %s, %s, %s,
+            NOW(), NOW(), %s
+        )
+        """
 
-            # 매개변수 생성 및 출력
-            params = list(data.dict().values())
-            cursor.execute(sql, params)
-            # commit(connection)
+        # 매개변수 설정 및 SQL 실행
+        params = list(data.dict().values())
+        cursor.execute(sql, params)
 
     except Exception as e:
-        print(f"Error updating data in local_store: {e}")
-        rollback(connection)  
+        print(f"Error inserting data in local_store: {e}")
         raise
 
-    finally:
-        close_cursor(cursor)     
-        close_connection(connection) 
+
+
 
 
 # 없어진 매장 업데이트
-def update_data_to_old_local_store(data_dict):
-    connection = get_db_connection()
-   
+def update_data_to_old_local_store(cursor, data_dict):
     try:
+        # Pydantic 모델을 사용해 데이터 검증 및 변환
         data = LocalOldStore(**data_dict)
 
-        with connection.cursor() as cursor:
-            sql = """
-            UPDATE local_store
-            SET
-                IS_EXIST = %s
-            WHERE store_business_number = %s
-            """
-            
-            params = list(data.dict().values()) + [data.store_business_number]
-            cursor.execute(sql, params)
-            # commit(connection)
+        # 업데이트 SQL 쿼리
+        sql = """
+        UPDATE local_store
+        SET
+            IS_EXIST = %s
+        WHERE store_business_number = %s
+        """
+        
+        # SQL 파라미터 설정
+        params = [data.is_exist, data.store_business_number]
+        cursor.execute(sql, params)
 
     except Exception as e:
-        print(f"Error updating data in local_store: {e}")
-        rollback(connection)  
+        print(f"Error updating old data in local_store: {e}")
         raise
-
-    finally:
-        close_cursor(cursor)     
-        close_connection(connection) 
