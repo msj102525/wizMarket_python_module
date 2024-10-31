@@ -27,8 +27,8 @@ from app.crud.report import (
     insert_or_update_commercial_district_main_category_count_data_batch as crud_insert_or_update_commercial_district_main_category_count_data_batch,
     select_commercial_district_j_score_average_data as crud_select_commercial_district_j_score_average_data,
     insert_or_update_commercial_district_j_score_average_data_batch as crud_insert_or_update_commercial_district_j_score_average_data_batch,
-    select_local_store_weekday_time_average_sales_data as crud_select_local_store_weekday_time_average_sales_data,
-    insert_or_update_commercial_district_weekday_time_average_sales_data_batch as crud_insert_or_update_commercial_district_weekday_time_average_sales_data_batch,
+    select_local_store_weekday_time_client_average_sales_data as crud_select_local_store_weekday_time_client_average_sales_data,
+    insert_or_update_commercial_district_weekday_time_client_average_sales_data_batch as crud_insert_or_update_commercial_district_weekday_time_client_average_sales_data_batch,
     select_commercial_district_district_average_sales_data_batch as crud_select_commercial_district_district_average_sales_data_batch,
     insert_or_update_commercial_district_district_average_sales_data_batch as crud_insert_or_update_commercial_district_district_average_sales_data_batch,
     select_commercial_district_top5_top3_data_batch as crud_select_commercial_district_top5_top3_data_batch,
@@ -37,10 +37,13 @@ from app.crud.report import (
     insert_or_update_loc_info_j_score_average_data_batch as crud_insert_or_update_loc_info_j_score_average_data_batch,
     select_commercial_district_j_score_weighted_average_data as crud_select_commercial_district_j_score_weighted_average_data,
     insert_or_update_commercial_district_j_score_weighted_average_data_batch as crud_insert_or_update_commercial_district_j_score_weighted_average_data_batch,
+    select_commercial_district_commercial_district_average_data as crud_select_commercial_district_commercial_district_average_data,
+    insert_or_update_commercial_district_commercial_district_average_data_batch as crud_insert_or_update_commercial_district_commercial_district_average_data_batch,
 )
 from app.db.connect import get_db_connection
 from app.schemas.report import (
     LocalStoreBasicInfo,
+    LocalStoreCDCommercialDistrict,
     LocalStoreCDDistrictAverageSalesTop5,
     LocalStoreCommercialDistrictJscoreAverage,
     LocalStoreLIJSWeightedAverage,
@@ -716,11 +719,13 @@ def insert_or_update_commercial_district_j_score_average_data_thread(
 
 
 def select_commercial_district_j_score_average_thread(
-    local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
+    local_store_sub_district_id_list: List[
+        LocalStoreMappingSubDistrictDetailCategoryId
+    ],
     batch_size: int = 10000,
 ) -> List[LocalStoreMainCategoryCount]:
     results = []
-    with ThreadPoolExecutor(max_workers=12) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:
         futures = []
         for i in range(0, len(local_store_sub_district_id_list), batch_size):
             batch = local_store_sub_district_id_list[i : i + batch_size]
@@ -771,7 +776,7 @@ def insert_or_update_commercial_district_j_score_average_data():
 
 
 # 매장 상권분석 동별 소분류별 요일,시간대 매출 비중
-def insert_or_update_local_store_weekday_time_average_sales_thread(
+def insert_or_update_local_store_weekday_time_client_average_sales_thread(
     store_top5_list: List[LocalStoreTop5Menu], batch_size: int = 5000
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -780,7 +785,7 @@ def insert_or_update_local_store_weekday_time_average_sales_thread(
             batch = store_top5_list[i : i + batch_size]
             futures.append(
                 executor.submit(
-                    crud_insert_or_update_commercial_district_weekday_time_average_sales_data_batch,
+                    crud_insert_or_update_commercial_district_weekday_time_client_average_sales_data_batch,
                     batch,
                 )
             )
@@ -793,7 +798,7 @@ def insert_or_update_local_store_weekday_time_average_sales_thread(
             future.result()
 
 
-def select_local_store_weekday_time_average_sales_thread(
+def select_local_store_weekday_time_client_average_sales_thread(
     local_store_rep_id_list: List[LocalStoreMappingRepId], batch_size: int = 5000
 ) -> List[LocalStoreTop5Menu]:
     results = []
@@ -803,7 +808,8 @@ def select_local_store_weekday_time_average_sales_thread(
             batch = local_store_rep_id_list[i : i + batch_size]
             futures.append(
                 executor.submit(
-                    crud_select_local_store_weekday_time_average_sales_data, batch
+                    crud_select_local_store_weekday_time_client_average_sales_data,
+                    batch,
                 )
             )
 
@@ -823,16 +829,21 @@ def select_local_store_weekday_time_average_sales_thread(
 
 
 @time_execution
-def insert_or_update_local_store_weekday_time_average_sales():
+def insert_or_update_local_store_weekday_time_client_average_sales():
     local_store_sub_district_rep_id_list = crud_select_local_store_sub_district_rep_id()
-    local_store_weekday_time_average_sales_list = (
-        select_local_store_weekday_time_average_sales_thread(
+    local_store_weekday_time_client_average_sales_list = (
+        select_local_store_weekday_time_client_average_sales_thread(
             local_store_sub_district_rep_id_list
         )
     )
 
-    insert_or_update_local_store_weekday_time_average_sales_thread(
-        local_store_weekday_time_average_sales_list
+    # print(len(local_store_weekday_time_client_average_sales_list))
+    # print(local_store_weekday_time_client_average_sales_list[0])
+    # print(local_store_weekday_time_client_average_sales_list[1])
+    # print(local_store_weekday_time_client_average_sales_list[2])
+
+    insert_or_update_local_store_weekday_time_client_average_sales_thread(
+        local_store_weekday_time_client_average_sales_list
     )
 
 
@@ -998,6 +1009,93 @@ def insert_or_update_commercial_district_top5_top3_data():
 #################################################################################
 
 
+# 상권 분석 읍/면/동 소분류 상권분석
+def insert_or_update_commercial_district_commercial_district_average_data_thread(
+    store_loc_info_cd_mc_count_data_list: List[
+        LocalStoreCommercialDistrictJscoreAverage
+    ],
+    batch_size: int = 5000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_cd_mc_count_data_list), batch_size):
+            batch = store_loc_info_cd_mc_count_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_insert_or_update_commercial_district_commercial_district_average_data_batch,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting cd jscore average batches",
+        ):
+            future.result()
+
+
+def select_commercial_district_commercial_district_average_thread(
+    local_store_sub_district_id_list: List[
+        LocalStoreMappingSubDistrictDetailCategoryId
+    ],
+    batch_size: int = 10000,
+) -> List[LocalStoreCDCommercialDistrict]:
+    results = []
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_select_commercial_district_commercial_district_average_data,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="SELECT cd commercial_district average batches",
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_commercial_district_commercial_district_average_data():
+    local_store_sub_district_detail_category_id_list: List[
+        LocalStoreMappingSubDistrictDetailCategoryId
+    ] = crud_select_local_store_mp_detail_cateogry_id()
+
+    print(len(local_store_sub_district_detail_category_id_list))
+    print(local_store_sub_district_detail_category_id_list[1])
+
+    commercial_district_commercial_district_average_list = (
+        select_commercial_district_commercial_district_average_thread(
+            local_store_sub_district_detail_category_id_list
+        )
+    )
+
+    print(len(commercial_district_commercial_district_average_list))
+    print(commercial_district_commercial_district_average_list[0])
+    print(commercial_district_commercial_district_average_list[1])
+    print(commercial_district_commercial_district_average_list[2])
+    print(commercial_district_commercial_district_average_list[3])
+    insert_or_update_commercial_district_commercial_district_average_data_thread(
+        commercial_district_commercial_district_average_list
+    )
+
+
+#################################################################################
+
+
 if __name__ == "__main__":
     # insert_or_update_local_store_info()  # 438.92 seconds
     # insert_or_update_local_store_loc_info_j_score_average_data()  #  405.20 seconds
@@ -1007,11 +1105,12 @@ if __name__ == "__main__":
     # insert_or_update_local_store_loc_info_j_score_data()  #  469.52 seconds
     # insert_or_update_local_store_loc_info_resident_work_pop_data()  #  311.09 seconds
     # insert_or_update_commercial_district_j_score_weighted_average_data()  # 658.05 seconds
-    insert_or_update_local_store_loc_info_move_pop_data()  #  315.91 seconds
+    # insert_or_update_local_store_loc_info_move_pop_data()  #  315.91 seconds
     # insert_or_update_commercial_district_main_detail_category_count_data()  #  329.36 seconds
-    # insert_or_update_commercial_district_j_score_average_data()  # 2888.45 seconds
-    # insert_or_update_local_store_weekday_time_average_sales()  #  90.22 seconds
+    # insert_or_update_commercial_district_j_score_average_data()  # 2888.45 seconds // 1031 수정했음 다시 돌려야함 _per 제거
+    # insert_or_update_local_store_weekday_time_client_average_sales()  #  90.22 seconds
     # insert_or_update_commercial_district_district_average_sales_data()  # 3016.82 seconds 150000 개 빔
     # insert_or_update_commercial_district_top5_top3_data()  # 550.75 seconds
+    insert_or_update_commercial_district_commercial_district_average_data()  #
 
     print("END!!!!!!!!!!!!!!!")

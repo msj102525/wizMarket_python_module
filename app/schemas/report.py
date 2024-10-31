@@ -293,19 +293,84 @@ class LocalStoreCommercialDistrictJscoreAverage(BaseModel):
 # 매장 상권분석 동별 소분류별 요일,시간대 매출 비중
 class LocalStoreCDWeekdayTiemAveragePercent(BaseModel):
     store_business_number: str
-    commercial_district_average_sales_percent_mon: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_tue: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_wed: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_thu: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_fri: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_sat: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_sun: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_06_09: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_09_12: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_12_15: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_15_18: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_18_21: Optional[float] = 0.0  # FLOAT
-    commercial_district_average_sales_percent_21_24: Optional[float] = 0.0  # FLOAT
+    commercial_district_average_sales_percent_mon: Optional[float]
+    commercial_district_average_sales_percent_tue: Optional[float]
+    commercial_district_average_sales_percent_wed: Optional[float]
+    commercial_district_average_sales_percent_thu: Optional[float]
+    commercial_district_average_sales_percent_fri: Optional[float]
+    commercial_district_average_sales_percent_sat: Optional[float]
+    commercial_district_average_sales_percent_sun: Optional[float]
+    commercial_district_average_sales_percent_06_09: Optional[float]
+    commercial_district_average_sales_percent_09_12: Optional[float]
+    commercial_district_average_sales_percent_12_15: Optional[float]
+    commercial_district_average_sales_percent_15_18: Optional[float]
+    commercial_district_average_sales_percent_18_21: Optional[float]
+    commercial_district_average_sales_percent_21_24: Optional[float]
+
+    commercial_district_avg_clent_per_m_20s: Optional[float]
+    commercial_district_avg_clent_per_m_30s: Optional[float]
+    commercial_district_avg_clent_per_m_40s: Optional[float]
+    commercial_district_avg_clent_per_m_50s: Optional[float]
+    commercial_district_avg_clent_per_m_60_over: Optional[float]
+
+    commercial_district_avg_clent_per_f_20s: Optional[float]
+    commercial_district_avg_clent_per_f_30s: Optional[float]
+    commercial_district_avg_clent_per_f_40s: Optional[float]
+    commercial_district_avg_clent_per_f_50s: Optional[float]
+    commercial_district_avg_clent_per_f_60_over: Optional[float]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.commercial_district_average_sales_percent_mon is None:
+            self.commercial_district_average_sales_percent_mon = 0.0
+
+        if self.commercial_district_average_sales_percent_tue is None:
+            self.commercial_district_average_sales_percent_tue = 0.0
+
+        if self.commercial_district_average_sales_percent_wed is None:
+            self.commercial_district_average_sales_percent_wed = 0.0
+
+        if self.commercial_district_average_sales_percent_thu is None:
+            self.commercial_district_average_sales_percent_thu = 0.0
+
+        if self.commercial_district_average_sales_percent_fri is None:
+            self.commercial_district_average_sales_percent_fri = 0.0
+
+        if self.commercial_district_average_sales_percent_sat is None:
+            self.commercial_district_average_sales_percent_sat = 0.0
+
+        if self.commercial_district_average_sales_percent_sun is None:
+            self.commercial_district_average_sales_percent_sun = 0.0
+
+        if self.commercial_district_avg_clent_per_m_20s is None:
+            self.commercial_district_avg_clent_per_m_20s = 0.0
+
+        if self.commercial_district_avg_clent_per_m_30s is None:
+            self.commercial_district_avg_clent_per_m_30s = 0.0
+
+        if self.commercial_district_avg_clent_per_m_40s is None:
+            self.commercial_district_avg_clent_per_m_40s = 0.0
+
+        if self.commercial_district_avg_clent_per_m_50s is None:
+            self.commercial_district_avg_clent_per_m_50s = 0.0
+
+        if self.commercial_district_avg_clent_per_m_60_over is None:
+            self.commercial_district_avg_clent_per_m_60_over = 0.0
+
+        if self.commercial_district_avg_clent_per_f_20s is None:
+            self.commercial_district_avg_clent_per_f_20s = 0.0
+
+        if self.commercial_district_avg_clent_per_f_30s is None:
+            self.commercial_district_avg_clent_per_f_30s = 0.0
+
+        if self.commercial_district_avg_clent_per_f_40s is None:
+            self.commercial_district_avg_clent_per_f_40s = 0.0
+
+        if self.commercial_district_avg_clent_per_f_50s is None:
+            self.commercial_district_avg_clent_per_f_50s = 0.0
+
+        if self.commercial_district_avg_clent_per_f_60_over is None:
+            self.commercial_district_avg_clent_per_f_60_over = 0.0
 
     class Config:
         from_attributes = True
@@ -339,3 +404,54 @@ class LocalStoreRisingBusinessNTop5SDTop3(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 상권분석 읍/면/동 소분류 상권분석
+class LocalStoreCDCommercialDistrict(BaseModel):
+    store_business_number: str
+    commercial_district_national_density_average: Optional[float]
+    commercial_district_sub_district_density_average: Optional[float]
+    commercial_district_national_average_sales: Optional[int]
+    commercial_district_sub_district_average_sales: Optional[int]
+    commercial_district_national_average_payment: Optional[int]
+    commercial_district_sub_district_average_payment: Optional[int]
+    commercial_district_national_usage_count: Optional[int]
+    commercial_district_sub_district_usage_count: Optional[int]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.commercial_district_national_density_average is None:
+            self.commercial_district_national_density_average = 0.0
+
+        if self.commercial_district_sub_district_density_average is None:
+            self.commercial_district_sub_district_density_average = 0.0
+
+        if self.commercial_district_national_average_sales is None:
+            self.commercial_district_national_average_sales = 0.0
+
+        if self.commercial_district_sub_district_average_sales is None:
+            self.commercial_district_sub_district_average_sales = 0.0
+
+        if self.commercial_district_national_average_payment is None:
+            self.commercial_district_national_average_payment = 0.0
+
+        if self.commercial_district_sub_district_average_payment is None:
+            self.commercial_district_sub_district_average_payment = 0.0
+
+        if self.commercial_district_national_usage_count is None:
+            self.commercial_district_national_usage_count = 0.0
+
+        if self.commercial_district_sub_district_usage_count is None:
+            self.commercial_district_sub_district_usage_count = 0.0
+
+
+####################
+# store_business_number='MA010120220807561997'
+# commercial_district_national_density_average=2.678424835205078
+# commercial_district_sub_district_density_average=3.5
+# commercial_district_national_average_sales=34123132.0
+# commercial_district_sub_district_average_sales=20710000.0
+# commercial_district_national_average_payment=68006.9609375
+# commercial_district_sub_district_average_payment=101914.0
+# commercial_district_national_usage_count=11912.2744140625
+# commercial_district_sub_district_usage_count=3658.0

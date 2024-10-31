@@ -13,6 +13,7 @@ from app.db.connect import (
 )
 from app.schemas.report import (
     LocalStoreBasicInfo,
+    LocalStoreCDCommercialDistrict,
     LocalStoreCDDistrictAverageSalesTop5,
     LocalStoreCDJSWeightedAverage,
     LocalStoreCDWeekdayTiemAveragePercent,
@@ -427,7 +428,7 @@ def select_local_store_loc_info_j_score_average_data(
             select_query = """
                 SELECT
                     SUB_DISTRICT_ID,
-                    J_SCORE_PER
+                    J_SCORE
                 FROM
                     LOC_INFO_STATISTICS
                 WHERE TARGET_ITEM = 'j_score_avg'
@@ -453,9 +454,7 @@ def select_local_store_loc_info_j_score_average_data(
                     results.append(
                         LocalStoreLIJSWeightedAverage(
                             store_business_number=store_info.store_business_number,
-                            loc_info_j_score_average=(
-                                loc_info_data["J_SCORE_PER"] or 0
-                            ),
+                            loc_info_j_score_average=(loc_info_data["J_SCORE"] or 0),
                         ),
                     )
 
@@ -1038,11 +1037,11 @@ def select_commercial_district_j_score_average_data(
                         COALESCE(CDMSS.BIZ_DETAIL_CATEGORY_ID, CDUCS.BIZ_DETAIL_CATEGORY_ID, 
                                 CDASS.BIZ_DETAIL_CATEGORY_ID, CDSDDS.BIZ_DETAIL_CATEGORY_ID, 
                                 CDAPS.BIZ_DETAIL_CATEGORY_ID) AS BIZ_DETAIL_CATEGORY_ID,
-                        CDMSS.J_SCORE_PER AS MARKET_SIZE_J,
-                        CDUCS.J_SCORE_PER AS USAGE_COUNT_J,
-                        CDASS.J_SCORE_PER AS AVERAGE_SALES_J,
-                        CDSDDS.J_SCORE_PER AS SUB_DISTRICT_DENSITY_J,
-                        CDAPS.J_SCORE_PER AS AVERAGE_PAYMENT_J
+                        CDMSS.J_SCORE AS MARKET_SIZE_J,
+                        CDUCS.J_SCORE AS USAGE_COUNT_J,
+                        CDASS.J_SCORE AS AVERAGE_SALES_J,
+                        CDSDDS.J_SCORE AS SUB_DISTRICT_DENSITY_J,
+                        CDAPS.J_SCORE AS AVERAGE_PAYMENT_J
                     FROM
                         SUB_DISTRICT SD
                     LEFT JOIN COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS CDMSS 
@@ -1146,7 +1145,7 @@ def select_commercial_district_j_score_average_data(
 
 
 ######################## 상권분석 동별 소분류별 요일,시간대 매출 비중 ######################################
-def select_local_store_weekday_time_average_sales_data(
+def select_local_store_weekday_time_client_average_sales_data(
     batch: List[LocalStoreMappingRepId],
 ) -> List[LocalStoreCDWeekdayTiemAveragePercent]:
     logger = logging.getLogger(__name__)
@@ -1182,7 +1181,17 @@ def select_local_store_weekday_time_average_sales_data(
                         AVG_PROFIT_PER_12_15,
                         AVG_PROFIT_PER_15_18,
                         AVG_PROFIT_PER_18_21,
-                        AVG_PROFIT_PER_21_24
+                        AVG_PROFIT_PER_21_24,
+                        AVG_CLIENT_PER_M_20,
+                        AVG_CLIENT_PER_M_30,
+                        AVG_CLIENT_PER_M_40,
+                        AVG_CLIENT_PER_M_50,
+                        AVG_CLIENT_PER_M_60,
+                        AVG_CLIENT_PER_F_20,
+                        AVG_CLIENT_PER_F_30,
+                        AVG_CLIENT_PER_F_40,
+                        AVG_CLIENT_PER_F_50,
+                        AVG_CLIENT_PER_F_60
                     FROM COMMERCIAL_DISTRICT
                     WHERE (SUB_DISTRICT_ID, BIZ_DETAIL_CATEGORY_ID) IN ({placeholders})
                     AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
@@ -1211,43 +1220,73 @@ def select_local_store_weekday_time_average_sales_data(
                             LocalStoreCDWeekdayTiemAveragePercent(
                                 store_business_number=store_info.store_business_number,
                                 commercial_district_average_sales_percent_mon=result_row.get(
-                                    "AVG_PROFIT_PER_MON", 0.0
+                                    "AVG_PROFIT_PER_MON"
                                 ),
                                 commercial_district_average_sales_percent_tue=result_row.get(
-                                    "AVG_PROFIT_PER_TUE", 0.0
+                                    "AVG_PROFIT_PER_TUE"
                                 ),
                                 commercial_district_average_sales_percent_wed=result_row.get(
-                                    "AVG_PROFIT_PER_WED", 0.0
+                                    "AVG_PROFIT_PER_WED"
                                 ),
                                 commercial_district_average_sales_percent_thu=result_row.get(
-                                    "AVG_PROFIT_PER_THU", 0.0
+                                    "AVG_PROFIT_PER_THU"
                                 ),
                                 commercial_district_average_sales_percent_fri=result_row.get(
-                                    "AVG_PROFIT_PER_FRI", 0.0
+                                    "AVG_PROFIT_PER_FRI"
                                 ),
                                 commercial_district_average_sales_percent_sat=result_row.get(
-                                    "AVG_PROFIT_PER_SAT", 0.0
+                                    "AVG_PROFIT_PER_SAT"
                                 ),
                                 commercial_district_average_sales_percent_sun=result_row.get(
-                                    "AVG_PROFIT_PER_SUN", 0.0
+                                    "AVG_PROFIT_PER_SUN"
                                 ),
                                 commercial_district_average_sales_percent_06_09=result_row.get(
-                                    "AVG_PROFIT_PER_06_09", 0.0
+                                    "AVG_PROFIT_PER_06_09"
                                 ),
                                 commercial_district_average_sales_percent_09_12=result_row.get(
-                                    "AVG_PROFIT_PER_09_12", 0.0
+                                    "AVG_PROFIT_PER_09_12"
                                 ),
                                 commercial_district_average_sales_percent_12_15=result_row.get(
-                                    "AVG_PROFIT_PER_12_15", 0.0
+                                    "AVG_PROFIT_PER_12_15"
                                 ),
                                 commercial_district_average_sales_percent_15_18=result_row.get(
-                                    "AVG_PROFIT_PER_15_18", 0.0
+                                    "AVG_PROFIT_PER_15_18"
                                 ),
                                 commercial_district_average_sales_percent_18_21=result_row.get(
-                                    "AVG_PROFIT_PER_18_21", 0.0
+                                    "AVG_PROFIT_PER_18_21"
                                 ),
                                 commercial_district_average_sales_percent_21_24=result_row.get(
-                                    "AVG_PROFIT_PER_21_24", 0.0
+                                    "AVG_PROFIT_PER_21_24"
+                                ),
+                                commercial_district_avg_clent_per_m_20s=result_row.get(
+                                    "AVG_CLIENT_PER_M_20"
+                                ),
+                                commercial_district_avg_clent_per_m_30s=result_row.get(
+                                    "AVG_CLIENT_PER_M_30"
+                                ),
+                                commercial_district_avg_clent_per_m_40s=result_row.get(
+                                    "AVG_CLIENT_PER_M_40"
+                                ),
+                                commercial_district_avg_clent_per_m_50s=result_row.get(
+                                    "AVG_CLIENT_PER_M_50"
+                                ),
+                                commercial_district_avg_clent_per_m_60_over=result_row.get(
+                                    "AVG_CLIENT_PER_M_60"
+                                ),
+                                commercial_district_avg_clent_per_f_20s=result_row.get(
+                                    "AVG_CLIENT_PER_F_20"
+                                ),
+                                commercial_district_avg_clent_per_f_30s=result_row.get(
+                                    "AVG_CLIENT_PER_F_30"
+                                ),
+                                commercial_district_avg_clent_per_f_40s=result_row.get(
+                                    "AVG_CLIENT_PER_F_40"
+                                ),
+                                commercial_district_avg_clent_per_f_50s=result_row.get(
+                                    "AVG_CLIENT_PER_F_50"
+                                ),
+                                commercial_district_avg_clent_per_f_60_over=result_row.get(
+                                    "AVG_CLIENT_PER_F_60"
                                 ),
                             )
                         )
@@ -1495,6 +1534,129 @@ def select_commercial_district_top5_top3_data_batch(
 
     except Exception as e:
         logger.error(f"LocalStoreLocInfoData 가져오는 중 오류 발생: {e}")
+        raise
+
+
+######################################################################
+
+
+# 상권분석 읍/면/동 소분류 상권분석
+def select_commercial_district_commercial_district_average_data(
+    mappings: List[LocalStoreMappingSubDistrictDetailCategoryId],
+) -> List[LocalStoreCDCommercialDistrict]:
+
+    logger = logging.getLogger(__name__)
+
+    store_mappings: Dict[str, Dict] = defaultdict(
+        lambda: {"sub_district_id": None, "detail_categories": set()}
+    )
+
+    for mapping in mappings:
+        store_data = store_mappings[mapping.store_business_number]
+        store_data["sub_district_id"] = mapping.sub_district_id
+        store_data["detail_categories"].add(mapping.detail_category_id)
+
+    results = []
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                for store_business_number, data in store_mappings.items():
+                    sub_district_id = data["sub_district_id"]
+                    detail_categories = tuple(data["detail_categories"])
+
+                    # 첫 번째 쿼리: 서브디스트릭트 데이터 조회 (SUB_DISTRICT_...)
+                    cursor.execute(
+                        """
+                        SELECT
+                            SUB_DISTRICT_ID,
+                            SUM(SUB_DISTRICT_DENSITY) as density,
+                            SUM(AVERAGE_SALES) as sales,
+                            SUM(AVERAGE_PAYMENT) as payment,
+                            SUM(USAGE_COUNT) as usage_count
+                        FROM
+                            COMMERCIAL_DISTRICT
+                        WHERE SUB_DISTRICT_ID = %s
+                        AND BIZ_DETAIL_CATEGORY_ID IN %s
+                        AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                        """,
+                        (sub_district_id, detail_categories),
+                    )
+                    sub_district_data = cursor.fetchone()
+
+                    # 두 번째 쿼리: 전국 평균 데이터 조회 (NATIONAL_...)
+                    cursor.execute(
+                        """
+                        SELECT 
+                            SD.SUB_DISTRICT_ID,
+                            SUM(CDSDDS.AVG_VAL) AS density_avg,
+                            SUM(CDASS.AVG_VAL) AS sales_avg,
+                            SUM(CDAPS.AVG_VAL) AS payment_avg,
+                            SUM(CDUCS.AVG_VAL) AS usage_avg    
+                        FROM
+                            SUB_DISTRICT SD
+                        LEFT JOIN COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS CDMSS 
+                            ON CDMSS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                            AND CDMSS.BIZ_DETAIL_CATEGORY_ID IN %s
+                        LEFT JOIN COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS CDUCS 
+                            ON CDUCS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                            AND CDUCS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                        LEFT JOIN COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS CDASS 
+                            ON CDASS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                            AND CDASS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                        LEFT JOIN COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS CDSDDS 
+                            ON CDSDDS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                            AND CDSDDS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                        LEFT JOIN COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS CDAPS 
+                            ON CDAPS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
+                            AND CDAPS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
+                        WHERE
+                            SD.SUB_DISTRICT_ID = %s
+                        AND CDMSS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS)
+                        AND CDUCS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS)
+                        AND CDASS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS)
+                        AND CDSDDS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS)
+                        AND CDAPS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS)
+                        """,
+                        (detail_categories, sub_district_id),
+                    )
+                    national_data = cursor.fetchone()
+
+                    # LocalStoreCDCommercialDistrict 인스턴스 생성
+                    result = LocalStoreCDCommercialDistrict(
+                        store_business_number=store_business_number,
+                        commercial_district_national_density_average=national_data.get(
+                            "density_avg", 0.0
+                        ),
+                        commercial_district_sub_district_density_average=sub_district_data.get(
+                            "density", 0.0
+                        ),
+                        commercial_district_national_average_sales=int(
+                            national_data.get("sales_avg", 0) or 0
+                        ),
+                        commercial_district_sub_district_average_sales=int(
+                            sub_district_data.get("sales", 0) or 0
+                        ),
+                        commercial_district_national_average_payment=int(
+                            national_data.get("payment_avg", 0) or 0
+                        ),
+                        commercial_district_sub_district_average_payment=int(
+                            sub_district_data.get("payment", 0) or 0
+                        ),
+                        commercial_district_national_usage_count=int(
+                            national_data.get("usage_avg", 0) or 0
+                        ),
+                        commercial_district_sub_district_usage_count=int(
+                            sub_district_data.get("usage_count", 0) or 0
+                        ),
+                    )
+
+                    results.append(result)
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Error processing commercial district data: {e}")
         raise
 
 
@@ -2009,7 +2171,7 @@ def insert_or_update_commercial_district_j_score_average_data_batch(
 
 
 # 매장 상권분석 동별 소분류별 요일,시간대 매출 비중
-def insert_or_update_commercial_district_weekday_time_average_sales_data_batch(
+def insert_or_update_commercial_district_weekday_time_client_average_sales_data_batch(
     batch: List[LocalStoreCommercialDistrictJscoreAverage],
 ) -> None:
     try:
@@ -2030,8 +2192,18 @@ def insert_or_update_commercial_district_weekday_time_average_sales_data_batch(
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_12_15,
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_15_18,
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_18_21,
-                        COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_20S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_30S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_40S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_50S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_60_OVER,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_20S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_30S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_40S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_50S,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_60_OVER
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_MON = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_MON),
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_TUE = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_TUE),
@@ -2045,7 +2217,17 @@ def insert_or_update_commercial_district_weekday_time_average_sales_data_batch(
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_12_15 = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_12_15),
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_15_18 = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_15_18),
                         COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_18_21 = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_18_21),
-                        COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24 = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24)
+                        COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24 = VALUES(COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_20S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_20S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_30S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_30S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_40S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_40S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_50S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_50S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_60_OVER = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_60_OVER),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_20S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_20S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_30S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_30S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_40S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_40S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_50S = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_50S),
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_60_OVER = VALUES(COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_60_OVER)
                     ;
                 """
 
@@ -2065,6 +2247,16 @@ def insert_or_update_commercial_district_weekday_time_average_sales_data_batch(
                         store_info.commercial_district_average_sales_percent_15_18,
                         store_info.commercial_district_average_sales_percent_18_21,
                         store_info.commercial_district_average_sales_percent_21_24,
+                        store_info.commercial_district_avg_clent_per_m_20s,
+                        store_info.commercial_district_avg_clent_per_m_30s,
+                        store_info.commercial_district_avg_clent_per_m_40s,
+                        store_info.commercial_district_avg_clent_per_m_50s,
+                        store_info.commercial_district_avg_clent_per_m_60_over,
+                        store_info.commercial_district_avg_clent_per_f_20s,
+                        store_info.commercial_district_avg_clent_per_f_30s,
+                        store_info.commercial_district_avg_clent_per_f_40s,
+                        store_info.commercial_district_avg_clent_per_f_50s,
+                        store_info.commercial_district_avg_clent_per_f_60_over,
                     )
                     for store_info in batch
                 ]
@@ -2168,6 +2360,164 @@ def insert_or_update_commercial_district_top5_top3_data_batch(
                         store_info.rising_business_sub_district_rising_sales_top1_info,
                         store_info.rising_business_sub_district_rising_sales_top2_info,
                         store_info.rising_business_sub_district_rising_sales_top3_info,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating commercial_district top5 top3 data: {e}"
+        )
+        raise
+
+
+def insert_or_update_commercial_district_district_average_sales_data_batch(
+    batch: List[LocalStoreCDDistrictAverageSalesTop5],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP1_INFO, 
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP2_INFO,
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP3_INFO, 
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP4_INFO,
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP5_INFO
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP1_INFO = VALUES(COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP1_INFO),
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP2_INFO = VALUES(COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP2_INFO),
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP3_INFO = VALUES(COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP3_INFO),
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP4_INFO = VALUES(COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP4_INFO),
+                        COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP5_INFO = VALUES(COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP5_INFO)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.commercial_districdt_detail_category_average_sales_top1_info,
+                        store_info.commercial_districdt_detail_category_average_sales_top2_info,
+                        store_info.commercial_districdt_detail_category_average_sales_top3_info,
+                        store_info.commercial_districdt_detail_category_average_sales_top4_info,
+                        store_info.commercial_districdt_detail_category_average_sales_top5_info,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating commercial_district district average sales data: {e}"
+        )
+        raise
+
+
+# 뜨는 업종 전국 TOP5, 읍/면/동 TOP3 (시/군/구,읍/면/동,소분류명,증가율)
+def insert_or_update_commercial_district_top5_top3_data_batch(
+    batch: List[LocalStoreCDDistrictAverageSalesTop5],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO, 
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP2_INFO,
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP3_INFO, 
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP4_INFO,
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP5_INFO,
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP1_INFO,
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO,
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP2_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP2_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP3_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP3_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP4_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP4_INFO),
+                        RISING_BUSINESS_NATIONAL_RISING_SALES_TOP5_INFO = VALUES(RISING_BUSINESS_NATIONAL_RISING_SALES_TOP5_INFO),
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP1_INFO = VALUES(RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP1_INFO),
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO = VALUES(RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO),
+                        RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO = VALUES(RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.rising_business_national_rising_sales_top1_info,
+                        store_info.rising_business_national_rising_sales_top2_info,
+                        store_info.rising_business_national_rising_sales_top3_info,
+                        store_info.rising_business_national_rising_sales_top4_info,
+                        store_info.rising_business_national_rising_sales_top5_info,
+                        store_info.rising_business_sub_district_rising_sales_top1_info,
+                        store_info.rising_business_sub_district_rising_sales_top2_info,
+                        store_info.rising_business_sub_district_rising_sales_top3_info,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating commercial_district top5 top3 data: {e}"
+        )
+        raise
+
+
+# 상권분석 읍/면/동 소분류 상권분석
+def insert_or_update_commercial_district_commercial_district_average_data_batch(
+    batch: List[LocalStoreCDCommercialDistrict],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        COMMERCIAL_DISTRICT_NATIONAL_DENSITY_AVERAGE, 
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_AVERAGE,
+                        COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_SALES, 
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_AVERAGE_SALES,
+                        COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_PAYMENT,
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_AVERAGE_PAYMENT,
+                        COMMERCIAL_DISTRICT_NATIONAL_USAGE_COUNT,
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_USAGE_COUNT
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        COMMERCIAL_DISTRICT_NATIONAL_DENSITY_AVERAGE = VALUES(COMMERCIAL_DISTRICT_NATIONAL_DENSITY_AVERAGE),
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_AVERAGE = VALUES(COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_AVERAGE),
+                        COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_SALES = VALUES(COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_SALES),
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_AVERAGE_SALES = VALUES(COMMERCIAL_DISTRICT_SUB_DISTRICT_AVERAGE_SALES),
+                        COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_PAYMENT = VALUES(COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_PAYMENT),
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_AVERAGE_PAYMENT = VALUES(COMMERCIAL_DISTRICT_SUB_DISTRICT_AVERAGE_PAYMENT),
+                        COMMERCIAL_DISTRICT_NATIONAL_USAGE_COUNT = VALUES(COMMERCIAL_DISTRICT_NATIONAL_USAGE_COUNT),
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_USAGE_COUNT = VALUES(COMMERCIAL_DISTRICT_SUB_DISTRICT_USAGE_COUNT)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.commercial_district_national_density_average,
+                        store_info.commercial_district_sub_district_density_average,
+                        store_info.commercial_district_national_average_sales,
+                        store_info.commercial_district_sub_district_average_sales,
+                        store_info.commercial_district_national_average_payment,
+                        store_info.commercial_district_sub_district_average_payment,
+                        store_info.commercial_district_national_usage_count,
+                        store_info.commercial_district_sub_district_usage_count,
                     )
                     for store_info in batch
                 ]
