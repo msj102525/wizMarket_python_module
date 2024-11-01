@@ -488,6 +488,9 @@ def select_local_store_loc_info_data(
                     MOVE_POP,
                     SHOP,
                     INCOME,
+                    SALES,
+                    SPEND,
+                    HOUSE,
                     Y_M
                 FROM LOC_INFO
                 WHERE SUB_DISTRICT_ID IN (%s)
@@ -531,6 +534,15 @@ def select_local_store_loc_info_data(
                             loc_info_income_won=round(
                                 (loc_info_data["INCOME"] or 0) / 10000
                             ),
+                            loc_info_average_sales_k=round(
+                                (loc_info_data["SALES"] or 0) / 1000, 1
+                            ),
+                            loc_info_average_spend_k=round(
+                                (loc_info_data["SPEND"] or 0) / 1000, 1
+                            ),
+                            loc_info_average_house_k=round(
+                                (loc_info_data["HOUSE"] or 0) / 1000, 1
+                            ),
                             loc_info_data_ref_date=loc_info_data["Y_M"],
                         )
                     )
@@ -562,7 +574,7 @@ def select_local_store_loc_info_j_score_data(
                 SELECT
                     SUB_DISTRICT_ID,
                     TARGET_ITEM,
-                    J_SCORE_PER
+                    COALESCE(J_SCORE, 0.0) as J_SCORE
                 FROM LOC_INFO_STATISTICS
                 WHERE SUB_DISTRICT_ID IN (%s)
                 AND STAT_LEVEL = '전국'
@@ -577,7 +589,7 @@ def select_local_store_loc_info_j_score_data(
 
             # loc_info 점수 딕셔너리 생성
             loc_info_j_score_dict = {
-                (row["SUB_DISTRICT_ID"], row["TARGET_ITEM"]): row["J_SCORE_PER"]
+                (row["SUB_DISTRICT_ID"], row["TARGET_ITEM"]): float(row["J_SCORE"])
                 for row in loc_rows
             }
 
@@ -585,7 +597,7 @@ def select_local_store_loc_info_j_score_data(
             pop_select_query = """
                 SELECT
                     SUB_DISTRICT_ID,
-                    J_SCORE_PER
+                    COALESCE(J_SCORE, 0.0) as J_SCORE
                 FROM POPULATION_INFO_MZ_STATISTICS
                 WHERE SUB_DISTRICT_ID IN (%s)
                 AND STAT_LEVEL = '전국'
@@ -598,7 +610,7 @@ def select_local_store_loc_info_j_score_data(
 
             # pop_info 점수 딕셔너리 생성
             pop_info_j_score_dict = {
-                row["SUB_DISTRICT_ID"]: row["J_SCORE_PER"] for row in pop_rows
+                row["SUB_DISTRICT_ID"]: float(row["J_SCORE"]) for row in pop_rows
             }
 
             # 결과 생성
@@ -607,32 +619,38 @@ def select_local_store_loc_info_j_score_data(
                 results.append(
                     LocalStoreLocInfoJscoreData(
                         store_business_number=store_info.store_business_number,
-                        loc_info_resident_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "resident"), 0.0
+                        loc_info_resident_j_score=float(
+                            loc_info_j_score_dict.get(
+                                (sub_district_id, "resident"), 0.0
+                            )
                         ),
-                        loc_info_work_pop_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "work_pop"), 0.0
+                        loc_info_work_pop_j_score=float(
+                            loc_info_j_score_dict.get(
+                                (sub_district_id, "work_pop"), 0.0
+                            )
                         ),
-                        loc_info_move_pop_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "move_pop"), 0.0
+                        loc_info_move_pop_j_score=float(
+                            loc_info_j_score_dict.get(
+                                (sub_district_id, "move_pop"), 0.0
+                            )
                         ),
-                        loc_info_shop_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "shop"), 0.0
+                        loc_info_shop_j_score=float(
+                            loc_info_j_score_dict.get((sub_district_id, "shop"), 0.0)
                         ),
-                        loc_info_income_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "income"), 0.0
+                        loc_info_income_j_score=float(
+                            loc_info_j_score_dict.get((sub_district_id, "income"), 0.0)
                         ),
-                        loc_info_average_spend_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "spend"), 0.0
+                        loc_info_average_spend_j_score=float(
+                            loc_info_j_score_dict.get((sub_district_id, "spend"), 0.0)
                         ),
-                        loc_info_average_sales_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "sales"), 0.0
+                        loc_info_average_sales_j_score=float(
+                            loc_info_j_score_dict.get((sub_district_id, "sales"), 0.0)
                         ),
-                        loc_info_house_j_score=loc_info_j_score_dict.get(
-                            (sub_district_id, "house"), 0.0
+                        loc_info_house_j_score=float(
+                            loc_info_j_score_dict.get((sub_district_id, "house"), 0.0)
                         ),
-                        population_mz_population_j_score=pop_info_j_score_dict.get(
-                            sub_district_id, 0.0
+                        population_mz_population_j_score=float(
+                            pop_info_j_score_dict.get(sub_district_id, 0.0)
                         ),
                     )
                 )
@@ -640,7 +658,7 @@ def select_local_store_loc_info_j_score_data(
             return results
 
     except Exception as e:
-        logger.error(f"LocalStoreLocInfoJscoreData 가져오는 중 오류 발생: {e}")
+        logger.error(f"Error processing batch: {str(e)}")
         raise
 
 
@@ -835,7 +853,7 @@ def select_commercial_district_j_score_weighted_average_data(
                     query = """
                     SELECT
                         BIZ_DETAIL_CATEGORY_ID,
-                        J_SCORE_PER_AVG
+                        J_SCORE_AVG
                     FROM
                         COMMERCIAL_DISTRICT_WEIGHTED_AVERAGE
                     WHERE SUB_DISTRICT_ID = %s
@@ -850,9 +868,9 @@ def select_commercial_district_j_score_weighted_average_data(
                     store_scores = store_j_scores[store_number]
                     for score in scores:
                         if score["BIZ_DETAIL_CATEGORY_ID"] is not None:
-                            if score["J_SCORE_PER_AVG"] is not None:
+                            if score["J_SCORE_AVG"] is not None:
                                 store_scores["j_score"].append(
-                                    float(score["J_SCORE_PER_AVG"])
+                                    float(score["J_SCORE_AVG"])
                                 )
 
                 results = []
@@ -1836,14 +1854,20 @@ def insert_or_update_loc_info_data_batch(batch: List[LocalStoreLocInfoData]) -> 
                         LOC_INFO_MOVE_POP_K, 
                         LOC_INFO_SHOP_K,
                         LOC_INFO_INCOME_WON,
+                        LOC_INFO_AVERAGE_SALES_K,
+                        LOC_INFO_AVERAGE_SPEND_K,
+                        LOC_INFO_HOUSE_K,
                         LOC_INFO_DATA_REF_DATE
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         LOC_INFO_RESIDENT_K = VALUES(LOC_INFO_RESIDENT_K),
                         LOC_INFO_WORK_POP_K = VALUES(LOC_INFO_WORK_POP_K),
                         LOC_INFO_MOVE_POP_K = VALUES(LOC_INFO_MOVE_POP_K),
                         LOC_INFO_SHOP_K = VALUES(LOC_INFO_SHOP_K),
                         LOC_INFO_INCOME_WON = VALUES(LOC_INFO_INCOME_WON),
+                        LOC_INFO_AVERAGE_SALES_K = VALUES(LOC_INFO_AVERAGE_SALES_K),
+                        LOC_INFO_AVERAGE_SPEND_K = VALUES(LOC_INFO_AVERAGE_SPEND_K),
+                        LOC_INFO_HOUSE_K = VALUES(LOC_INFO_HOUSE_K),
                         LOC_INFO_DATA_REF_DATE = VALUES(LOC_INFO_DATA_REF_DATE)
                     ;
                 """
@@ -1856,6 +1880,9 @@ def insert_or_update_loc_info_data_batch(batch: List[LocalStoreLocInfoData]) -> 
                         store_info.loc_info_move_pop_k,
                         store_info.loc_info_shop_k,
                         store_info.loc_info_income_won,
+                        store_info.loc_info_average_sales_k,
+                        store_info.loc_info_average_spend_k,
+                        store_info.loc_info_average_house_k,
                         store_info.loc_info_data_ref_date,
                     )
                     for store_info in batch

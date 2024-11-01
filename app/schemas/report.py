@@ -190,7 +190,11 @@ class LocalStoreLocInfoData(BaseModel):
     loc_info_move_pop_k: Optional[float] = 0.0
     loc_info_shop_k: Optional[float] = 0.0
     loc_info_income_won: Optional[int] = 0
+    loc_info_average_sales_k: Optional[float] = 0.0
+    loc_info_average_spend_k: Optional[float] = 0.0
+    loc_info_average_house_k: Optional[float] = 0.0
     loc_info_data_ref_date: date
+    
 
     class Config:
         from_attributes = True

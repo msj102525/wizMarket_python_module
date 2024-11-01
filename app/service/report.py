@@ -316,8 +316,8 @@ def insert_or_update_local_store_loc_info_data():
     local_store_loc_info_list = select_local_store_loc_info_thread(
         local_store_sub_district_id_list
     )
-    # print(len(local_store_loc_info_list))
-    # print(local_store_loc_info_list[1])
+    print(len(local_store_loc_info_list))
+    print(local_store_loc_info_list[1])
     insert_or_update_local_store_loc_info_data_thread(local_store_loc_info_list)
 
 
@@ -1097,20 +1097,20 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 
 if __name__ == "__main__":
-    # insert_or_update_local_store_info()  # 438.92 seconds
-    # insert_or_update_local_store_loc_info_j_score_average_data()  #  405.20 seconds
-    # insert_or_update_local_store_top5_menu()  # 2916.64 seconds / 57.32 seconds
-    # insert_or_update_local_store_population_data()  # 281.83 seconds
-    # insert_or_update_local_store_loc_info_data()  # 284.88 seconds 125000건 정도 데이터 빔 // 1029 income 수정 입지 크롤링 후 다시해야함
-    # insert_or_update_local_store_loc_info_j_score_data()  #  469.52 seconds
-    # insert_or_update_local_store_loc_info_resident_work_pop_data()  #  311.09 seconds
-    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 658.05 seconds
-    # insert_or_update_local_store_loc_info_move_pop_data()  #  315.91 seconds
-    # insert_or_update_commercial_district_main_detail_category_count_data()  #  329.36 seconds
-    # insert_or_update_commercial_district_j_score_average_data()  # 2888.45 seconds // 1031 수정했음 다시 돌려야함 _per 제거
-    # insert_or_update_local_store_weekday_time_client_average_sales()  #  90.22 seconds
-    # insert_or_update_commercial_district_district_average_sales_data()  # 3016.82 seconds 150000 개 빔
-    # insert_or_update_commercial_district_top5_top3_data()  # 550.75 seconds
-    insert_or_update_commercial_district_commercial_district_average_data()  #
+    insert_or_update_local_store_info()  # 54.09 seconds # O
+    insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
+    insert_or_update_local_store_top5_menu()  # 54.82 seconds # O
+    insert_or_update_local_store_population_data()  # 49.84 seconds  # O
+    insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
+    insert_or_update_local_store_loc_info_j_score_data()  #  63.58 seconds # O
+    insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
+    insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds # O
+    insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
+    insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds # O
+    insert_or_update_commercial_district_j_score_average_data()  # 2888.45 seconds  # O
+    insert_or_update_local_store_weekday_time_client_average_sales()  #  54.19 seconds # O
+    insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds # O
+    insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds # O
+    insert_or_update_commercial_district_commercial_district_average_data()  # 4909.20 seconds # O
 
     print("END!!!!!!!!!!!!!!!")
