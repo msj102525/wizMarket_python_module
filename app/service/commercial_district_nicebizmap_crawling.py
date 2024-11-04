@@ -183,7 +183,7 @@ def get_district_count(city_idx):
             )
         )
         district_ul_li = district_ul.find_elements(By.TAG_NAME, "li")
-        print(f"시/군/구 갯수: {len(district_ul_li)}")
+        # print(f"시/군/구 갯수: {len(district_ul_li)}")
 
         get_sub_district_count(city_idx, len(district_ul_li))
     except Exception as e:
@@ -776,7 +776,7 @@ def search_commercial_district(
                     continue
 
                 if detail_category_text:
-                    print(detail_category_text)
+                    # print(detail_category_text)
 
                     time.sleep(1 + random.random())
 
@@ -1397,7 +1397,8 @@ def execute_parallel_tasks():
 
     # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     # values = [8, 9, 10, 11, 12, 13, 14, 15]  # pc1
-    values = [0, 1, 2, 3, 4, 5, 6, 7, 16]  # pc2
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 16]  # pc2
+    values = [0]  # 서울
 
     with Pool(processes=len(values)) as pool:
         pool.starmap(execute_task_in_thread, [(value,) for value in values])

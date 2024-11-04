@@ -36,9 +36,9 @@ def get_or_create_biz_detail_category_id(
         )
         result = cursor.fetchone()
 
-        logger.info(
-            f"Executing query: {select_query % (biz_sub_category_id,biz_detail_category_name )}"
-        )
+        # logger.info(
+        #     f"Executing query: {select_query % (biz_sub_category_id,biz_detail_category_name )}"
+        # )
 
         if result:
             return result[0]

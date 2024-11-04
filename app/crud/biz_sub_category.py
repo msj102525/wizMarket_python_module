@@ -32,9 +32,9 @@ def get_or_create_biz_sub_category_id(
         cursor.execute(select_query, (biz_main_category_id, biz_sub_category_name))
         result = cursor.fetchone()
 
-        logger.info(
-            f"Executing query: {select_query % (biz_main_category_id, biz_sub_category_name)}"
-        )
+        # logger.info(
+        #     f"Executing query: {select_query % (biz_main_category_id, biz_sub_category_name)}"
+        # )
 
         if result:
             return result[0]
