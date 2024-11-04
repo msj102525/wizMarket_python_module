@@ -1,1013 +1,1414 @@
-from collections import defaultdict
-import logging
-from typing import Dict, List, Optional, Set
-import pymysql
-from app.schemas.commercial_district import (
-    CommercialDistrictInsert,
-    CommercialDistrictOutput,
-    CommercialDistrictStatistics,
-    CommercialDistrictStatisticsBase,
-    CommercialDistrictSubDistrictDetailCategoryId,
-    CommercialDistrictWeightedAvgStatistics,
+from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool
+import random
+import re
+import time
+import os
+from typing import Dict, List
+
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import (
+    NoAlertPresentException,
 )
-from app.db.connect import (
-    get_db_connection,
-    close_connection,
-    close_cursor,
-    commit,
-    rollback,
+from selenium.webdriver.common.alert import Alert
+from tqdm import tqdm
+
+from app.crud.biz_detail_category import get_or_create_biz_detail_category_id
+from app.crud.biz_main_category import get_or_create_biz_main_category_id
+from app.crud.biz_sub_category import get_or_create_biz_sub_category_id
+from app.crud.city import get_or_create_city_id
+from app.crud.commercial_district import insert_commercial_district
+from app.crud.district import get_or_create_district_id
+from app.crud.sub_district import get_or_create_sub_district_id
+from app.schemas.commercial_district import CommercialDistrictInsert
+
+from selenium.common.exceptions import (
+    UnexpectedAlertPresentException,
+    NoAlertPresentException,
+    TimeoutException,
+    ElementClickInterceptedException,
+    NoSuchElementException,
+    StaleElementReferenceException,
 )
 
 
-def insert_commercial_district(data: CommercialDistrictInsert):
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    logger = logging.getLogger(__name__)
+# 시간 재는 함수
+def time_execution(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(
+            f"Execution time for {func.__name__}: {end_time - start_time:.2f} seconds"
+        )
+        return result
 
+    return wrapper
+
+
+BIZ_MAP_URL = "https://m.nicebizmap.co.kr/analysis/analysisFree"
+# BIZ_MAP_URL = "https://m.nicebizmap.co.kr/"
+
+
+# Global WebDriver instance
+global_driver = None
+
+
+def setup_global_driver():
+    global global_driver
+    if global_driver is None:
+        options = Options()
+        options.add_argument("--start-fullscreen")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+        # WebDriver Manager를 이용해 ChromeDriver 자동 관리
+        service = Service(ChromeDriverManager().install())
+        global_driver = webdriver.Chrome(service=service, options=options)
+
+    return global_driver
+
+
+def click_element(driver, wait, by, value):
     try:
-        insert_query = """
-        INSERT INTO commercial_district (
-            city_id, district_id, sub_district_id, 
-            biz_main_category_id, biz_sub_category_id, biz_detail_category_id,
-            national_density, city_density, district_density, sub_district_density,
-            market_size, average_payment, usage_count,
-            average_sales, operating_cost, food_cost, employee_cost, rental_cost, tax_cost, 
-            family_employee_cost, ceo_cost, etc_cost, average_profit,
-            avg_profit_per_mon, avg_profit_per_tue, avg_profit_per_wed, avg_profit_per_thu, avg_profit_per_fri, avg_profit_per_sat, avg_profit_per_sun,
-            avg_profit_per_06_09, avg_profit_per_09_12, avg_profit_per_12_15, avg_profit_per_15_18, avg_profit_per_18_21, avg_profit_per_21_24, avg_profit_per_24_06,
-            avg_client_per_m_20, avg_client_per_m_30, avg_client_per_m_40, avg_client_per_m_50, avg_client_per_m_60,
-            avg_client_per_f_20, avg_client_per_f_30, avg_client_per_f_40, avg_client_per_f_50, avg_client_per_f_60,
-            top_menu_1, top_menu_2, top_menu_3, top_menu_4, top_menu_5, y_m
-        ) VALUES (
-            %(city_id)s, %(district_id)s, %(sub_district_id)s, 
-            %(biz_main_category_id)s, %(biz_sub_category_id)s, %(biz_detail_category_id)s,
-            %(national_density)s, %(city_density)s, %(district_density)s, %(sub_district_density)s,
-            %(market_size)s, %(average_payment)s, %(usage_count)s,
-            %(average_sales)s, %(operating_cost)s, %(food_cost)s, %(employee_cost)s, %(rental_cost)s, %(tax_cost)s, 
-            %(family_employee_cost)s, %(ceo_cost)s, %(etc_cost)s, %(average_profit)s,
-            %(avg_profit_per_mon)s, %(avg_profit_per_tue)s, %(avg_profit_per_wed)s, %(avg_profit_per_thu)s, %(avg_profit_per_fri)s, %(avg_profit_per_sat)s, %(avg_profit_per_sun)s,
-            %(avg_profit_per_06_09)s, %(avg_profit_per_09_12)s, %(avg_profit_per_12_15)s, %(avg_profit_per_15_18)s, %(avg_profit_per_18_21)s, %(avg_profit_per_21_24)s, %(avg_profit_per_24_06)s,
-            %(avg_client_per_m_20)s, %(avg_client_per_m_30)s, %(avg_client_per_m_40)s, %(avg_client_per_m_50)s, %(avg_client_per_m_60)s,
-            %(avg_client_per_f_20)s, %(avg_client_per_f_30)s, %(avg_client_per_f_40)s, %(avg_client_per_f_50)s, %(avg_client_per_f_60)s,
-            %(top_menu_1)s, %(top_menu_2)s, %(top_menu_3)s, %(top_menu_4)s, %(top_menu_5)s, %(y_m)s
-        );
-        """
-
-        cursor.execute(insert_query, data)
-        commit(connection)
-        logger.info("Executing query: %s with data: %s", insert_query, data)
-
-    except pymysql.MySQLError as e:
-        rollback(connection)
-        logger.error(f"Error inserting data: {e}")
-    finally:
-        close_cursor(cursor)
-        close_connection(connection)
-
-
-# 시장 규모
-def select_market_size_has_value() -> List[CommercialDistrictStatisticsBase]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[CommercialDistrictStatisticsBase] = []
-
-    try:
-        if connection.open:
-            select_query = """
-            SELECT
-                CITY_ID,
-                DISTRICT_ID,
-                SUB_DISTRICT_ID,
-                BIZ_DETAIL_CATEGORY_ID,
-                MARKET_SIZE
-            FROM
-                COMMERCIAL_DISTRICT
-            WHERE
-                MARKET_SIZE > 0
-            ORDER BY BIZ_DETAIL_CATEGORY_ID
-            ;
-            """
-
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
-
-            # 대문자 키를 소문자로 변경하여 Pydantic 모델과 일치시킴
-            results = [
-                CommercialDistrictStatisticsBase(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    column_name=row["MARKET_SIZE"],
-                )
-                for row in rows
-            ]
-
-            return results
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
+        element = wait.until(EC.element_to_be_clickable((by, value)))
+        text = element.text
+        element.click()
+        time.sleep(1 + random.random())
+        return text
+    except ElementClickInterceptedException:
+        try:
+            driver.execute_script("arguments[0].click();", element)
+            text = element.text
+            return text
+        except Exception as e:
+            print(f"JavaScript click failed for element: {value}. Error: {str(e)}")
+            return False
+    except UnexpectedAlertPresentException:
+        handle_unexpected_alert(wait._driver)
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
-
-    return results
+        print(
+            f"Exception occurred click: {e} for element located by {by} with value {value}. Skipping to next element."
+        )
+        return ""
 
 
-# 결제 건수
-def select_usage_count_has_value() -> List[CommercialDistrictStatisticsBase]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[CommercialDistrictStatisticsBase] = []
-
+def read_element(wait, by, value):
     try:
-        if connection.open:
-            select_query = """
-            SELECT
-                CITY_ID,
-                DISTRICT_ID,
-                SUB_DISTRICT_ID,
-                BIZ_DETAIL_CATEGORY_ID,
-                USAGE_COUNT
-            FROM
-                COMMERCIAL_DISTRICT
-            WHERE
-                USAGE_COUNT > 0
-            ORDER BY BIZ_DETAIL_CATEGORY_ID
-            ;
-            """
-
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
-
-            # 대문자 키를 소문자로 변경하여 Pydantic 모델과 일치시킴
-            results = [
-                CommercialDistrictStatisticsBase(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    column_name=row["USAGE_COUNT"],
-                )
-                for row in rows
-            ]
-
-            return results
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
+        element = wait.until(EC.presence_of_element_located((by, value)))
+        text = element.text.strip()
+        time.sleep(1 + random.random())
+        return text
+    except (
+        TimeoutException,
+        NoSuchElementException,
+        StaleElementReferenceException,
+    ) as e:
+        print(f"Failed to read element: {by}, {value}. Error: {str(e)}")
+        return ""
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
-
-    return results
+        print(f"Unexpected error reading element: {by}, {value}. Error: {str(e)}")
+        return ""
 
 
-# 평균 매출
-def select_average_sales_has_value() -> List[CommercialDistrictStatisticsBase]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[CommercialDistrictStatisticsBase] = []
+def convert_to_int_float(value):
+    if isinstance(value, str):
+        value = re.sub(r"[^\d.]+", "", value)
+        return float(value) if "." in value else int(value)
+    return value
 
+
+def clean_data(int_str):
+    def clean_value(value):
+        if isinstance(value, str):
+            value = re.sub(r"[^\d.]+", "", value)
+            return float(value) if value else None
+        return value
+
+    return {key: clean_value(value) for key, value in int_str.items()}
+
+
+def handle_unexpected_alert(driver):
     try:
-        if connection.open:
-            select_query = """
-            SELECT
-                CITY_ID,
-                DISTRICT_ID,
-                SUB_DISTRICT_ID,
-                BIZ_DETAIL_CATEGORY_ID,
-                AVERAGE_SALES
-            FROM
-                COMMERCIAL_DISTRICT
-            WHERE
-                AVERAGE_SALES > 0
-            ORDER BY BIZ_DETAIL_CATEGORY_ID
-            ;
-            """
-
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
-
-            # 대문자 키를 소문자로 변경하여 Pydantic 모델과 일치시킴
-            results = [
-                CommercialDistrictStatisticsBase(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    column_name=row["AVERAGE_SALES"],
-                )
-                for row in rows
-            ]
-
-            return results
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
-
-    return results
+        alert = Alert(driver)
+        alert_text = alert.text
+        print(f"Alert detected: {alert_text}")
+        alert.accept()
+        return True
+    except NoAlertPresentException:
+        return False
 
 
-# 상권 분석 읍/면/동 밀집도
-def select_sub_district_density_has_value() -> List[CommercialDistrictStatisticsBase]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[CommercialDistrictStatisticsBase] = []
-
+def get_district_count(city_idx):
+    global global_driver
+    setup_global_driver()
     try:
-        if connection.open:
-            select_query = """
-            SELECT
-                CITY_ID,
-                DISTRICT_ID,
-                SUB_DISTRICT_ID,
-                BIZ_DETAIL_CATEGORY_ID,
-                SUB_DISTRICT_DENSITY
-            FROM
-                COMMERCIAL_DISTRICT
-            WHERE
-                SUB_DISTRICT_DENSITY > 0
-            ORDER BY BIZ_DETAIL_CATEGORY_ID
-            ;
-            """
+        # for city_idx in tqdm(range(city_count), desc="시/도 Progress"):
+        print(f"idx: {city_idx}")
 
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
+        global_driver.get(BIZ_MAP_URL)
+        wait = WebDriverWait(global_driver, 40)
 
-            # 대문자 키를 소문자로 변경하여 Pydantic 모델과 일치시킴
-            results = [
-                CommercialDistrictStatisticsBase(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    column_name=row["SUB_DISTRICT_DENSITY"],
-                )
-                for row in rows
-            ]
+        time.sleep(1 + random.random())
 
-            return results
+        # 분석 지역
+        click_element(
+            global_driver,
+            wait,
+            By.XPATH,
+            '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
+        )
 
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
+        time.sleep(1 + random.random())
 
-    return results
+        city_text = click_element(
+            global_driver,
+            wait,
+            By.XPATH,
+            f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
+        )
 
-
-# 상권 분석 평균 결제
-def select_average_payment_has_value() -> List[CommercialDistrictStatisticsBase]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[CommercialDistrictStatisticsBase] = []
-
-    try:
-        if connection.open:
-            select_query = """
-            SELECT
-                CITY_ID,
-                DISTRICT_ID,
-                SUB_DISTRICT_ID,
-                BIZ_DETAIL_CATEGORY_ID,
-                AVERAGE_PAYMENT
-            FROM
-                COMMERCIAL_DISTRICT
-            WHERE
-                AVERAGE_PAYMENT > 0
-            ORDER BY BIZ_DETAIL_CATEGORY_ID
-            ;
-            """
-
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
-
-            # 대문자 키를 소문자로 변경하여 Pydantic 모델과 일치시킴
-            results = [
-                CommercialDistrictStatisticsBase(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    column_name=row["AVERAGE_PAYMENT"],
-                )
-                for row in rows
-            ]
-
-            return results
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
-
-    return results
-
-
-def select_column_name_has_value(
-    column_name: str,
-) -> List[CommercialDistrictStatisticsBase]:
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-    results: List[CommercialDistrictStatisticsBase] = []
-
-    try:
-        if connection.open:
-            select_query = """
-            SELECT
-                CITY_ID,
-                DISTRICT_ID,
-                SUB_DISTRICT_ID,
-                BIZ_DETAIL_CATEGORY_ID,
-                {column_name}
-            FROM
-                COMMERCIAL_DISTRICT
-            WHERE
-                {column_name} > 0
-            ORDER BY BIZ_DETAIL_CATEGORY_ID
-            ;
-            """
-
-            logger.info(f"Executing query: {select_query}")
-
-            cursor.execute(select_query)
-            rows = cursor.fetchall()
-
-            # 대문자 키를 소문자로 변경하여 Pydantic 모델과 일치시킴
-            results = [
-                CommercialDistrictStatisticsBase(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    column_name=row[column_name],
-                )
-                for row in rows
-            ]
-
-            return results
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        rollback(connection)
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        rollback(connection)
-    finally:
-        if cursor:
-            close_cursor(cursor)
-        if connection:
-            close_connection(connection)
-
-    return results
-
-
-################################################
-
-
-# 상권정보 시장규모 통계
-def insert_market_size_statistics(stats: List[CommercialDistrictStatistics]):
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-
-    try:
-        if connection.open:
-            insert_query = """
-            INSERT INTO COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS
-            (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
-            BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-
-            # 데이터를 튜플 리스트로 변환
-            values = [
+        district_ul = wait.until(
+            EC.presence_of_element_located(
                 (
-                    stat.city_id,
-                    stat.district_id,
-                    stat.sub_district_id,
-                    stat.biz_main_category_id,
-                    stat.biz_sub_category_id,
-                    stat.biz_detail_category_id,
-                    stat.avg_val,
-                    stat.med_val,
-                    stat.std_val,
-                    stat.max_val,
-                    stat.min_val,
-                    stat.j_score_rank,
-                    stat.j_score_per,
-                    stat.j_score,
-                    stat.stat_level,
-                    stat.ref_date,
+                    By.XPATH,
+                    '//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul',
                 )
-                for stat in stats
-            ]
+            )
+        )
+        district_ul_li = district_ul.find_elements(By.TAG_NAME, "li")
+        print(f"시/군/구 갯수: {len(district_ul_li)}")
 
-            # 여러 레코드 한 번에 삽입
-            cursor.executemany(insert_query, values)
-
-            # 변경사항 커밋
-            connection.commit()  # commit 함수 바로 호출
-
-            logger.info(f"Successfully inserted {len(stats)} records.")
-            return len(stats)
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        connection.rollback()
+        get_sub_district_count(city_idx, len(district_ul_li))
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        connection.rollback()
+        print(f"Exception occurred: {e}.")
+        return None
     finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-    return 0  # 삽입 실패 시 0 반환
+        if global_driver:
+            global_driver.quit()  # 메인 함수에서만 드라이버 종료
+            global_driver = None
 
 
-# 상권정보 결제건수 통계
-def insert_usage_count_statistics(stats: List[CommercialDistrictStatistics]):
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-
+# def get_sub_district_count(start_idx: int, end_idx: int):
+# def get_sub_district_count(city_idx, district_idx):  # 시/군/구 직접 전달 반복문 X
+def get_sub_district_count(city_idx, district_count):
+    global global_driver
+    setup_global_driver()
     try:
-        if connection.open:
-            insert_query = """
-            INSERT INTO COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS
-            (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
-            BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
+        for district_idx in tqdm(
+            range(4, district_count), f"{city_idx} : 시/군/구 Progress"
+        ):
+            print()
+            try:
+                global_driver.get(BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
+                global_driver.implicitly_wait(10)
 
-            # 데이터를 튜플 리스트로 변환
-            values = [
-                (
-                    stat.city_id,
-                    stat.district_id,
-                    stat.sub_district_id,
-                    stat.biz_main_category_id,
-                    stat.biz_sub_category_id,
-                    stat.biz_detail_category_id,
-                    stat.avg_val,
-                    stat.med_val,
-                    stat.std_val,
-                    stat.max_val,
-                    stat.min_val,
-                    stat.j_score_rank,
-                    stat.j_score_per,
-                    stat.j_score,
-                    stat.stat_level,
-                    stat.ref_date,
+                time.sleep(1 + random.random())
+
+                # 분석 지역
+                click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
-                for stat in stats
-            ]
 
-            # 여러 레코드 한 번에 삽입
-            cursor.executemany(insert_query, values)
+                time.sleep(1 + random.random())
 
-            # 변경사항 커밋
-            connection.commit()  # commit 함수 바로 호출
+                city_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
+                )
 
-            logger.info(f"Successfully inserted {len(stats)} records.")
-            return len(stats)
+                time.sleep(1 + random.random())
 
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        connection.rollback()
+                district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
+                )
+
+                sub_district_ul = wait.until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            '//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul',
+                        )
+                    )
+                )
+                sub_district_ul_li = sub_district_ul.find_elements(By.TAG_NAME, "li")
+
+                get_main_category(city_idx, district_idx, len(sub_district_ul_li))
+            except UnexpectedAlertPresentException:
+                handle_unexpected_alert(wait._driver)
+            except Exception as e:
+                print(f"Error processing district_idx {district_idx}: {str(e)}")
+                continue  # 반복문일때 활성화 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            finally:
+                pass
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        connection.rollback()
+        print(
+            f"Exception occurred get_sub_district_count(), district_idx {district_idx}: {e}."
+        )
+        return None
     finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-    return 0  # 삽입 실패 시 0 반환
+        pass
 
 
-# 상권정보 평균매출 통계
-def insert_average_sales_statistics(stats: List[CommercialDistrictStatistics]):
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-
+def get_main_category(city_idx, district_idx, sub_district_count):
+    global global_driver
+    setup_global_driver()
     try:
-        if connection.open:
-            insert_query = """
-            INSERT INTO COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS
-            (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
-            BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
+        for sub_district_idx in range(sub_district_count):
+            try:
+                global_driver.get(BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
+                global_driver.implicitly_wait(10)
 
-            # 데이터를 튜플 리스트로 변환
-            values = [
-                (
-                    stat.city_id,
-                    stat.district_id,
-                    stat.sub_district_id,
-                    stat.biz_main_category_id,
-                    stat.biz_sub_category_id,
-                    stat.biz_detail_category_id,
-                    stat.avg_val,
-                    stat.med_val,
-                    stat.std_val,
-                    stat.max_val,
-                    stat.min_val,
-                    stat.j_score_rank,
-                    stat.j_score_per,
-                    stat.j_score,
-                    stat.stat_level,
-                    stat.ref_date,
+                # 분석 지역
+                click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
-                for stat in stats
-            ]
 
-            # 여러 레코드 한 번에 삽입
-            cursor.executemany(insert_query, values)
+                time.sleep(1 + random.random())
 
-            # 변경사항 커밋
-            connection.commit()  # commit 함수 바로 호출
-
-            logger.info(f"Successfully inserted {len(stats)} records.")
-            return len(stats)
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        connection.rollback()
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        connection.rollback()
-    finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-    return 0  # 삽입 실패 시 0 반환
-
-
-# 상권정보 밀집도 통계
-def insert_sub_district_density_statistics(stats: List[CommercialDistrictStatistics]):
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-
-    try:
-        if connection.open:
-            insert_query = """
-            INSERT INTO COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS
-            (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
-            BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-
-            # 데이터를 튜플 리스트로 변환
-            values = [
-                (
-                    stat.city_id,
-                    stat.district_id,
-                    stat.sub_district_id,
-                    stat.biz_main_category_id,
-                    stat.biz_sub_category_id,
-                    stat.biz_detail_category_id,
-                    stat.avg_val,
-                    stat.med_val,
-                    stat.std_val,
-                    stat.max_val,
-                    stat.min_val,
-                    stat.j_score_rank,
-                    stat.j_score_per,
-                    stat.j_score,
-                    stat.stat_level,
-                    stat.ref_date,
+                city_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
                 )
-                for stat in stats
-            ]
 
-            # 여러 레코드 한 번에 삽입
-            cursor.executemany(insert_query, values)
+                time.sleep(1 + random.random())
 
-            # 변경사항 커밋
-            connection.commit()  # commit 함수 바로 호출
-
-            logger.info(f"Successfully inserted {len(stats)} records.")
-            return len(stats)
-
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        connection.rollback()
-    except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        connection.rollback()
-    finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-    return 0  # 삽입 실패 시 0 반환
-
-
-# 상권정보 평균결제 통계
-def insert_average_payment_statistics(stats: List[CommercialDistrictStatistics]):
-    connection = get_db_connection()
-    cursor = connection.cursor(pymysql.cursors.DictCursor)
-    logger = logging.getLogger(__name__)
-
-    try:
-        if connection.open:
-            insert_query = """
-            INSERT INTO COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS
-            (CITY_ID, DISTRICT_ID, SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID, 
-            BIZ_SUB_CATEGORY_ID, BIZ_DETAIL_CATEGORY_ID, AVG_VAL, MED_VAL, 
-            STD_VAL, MAX_VAL, MIN_VAL, J_SCORE_RANK, J_SCORE_PER, J_SCORE, STAT_LEVEL, REF_DATE)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-
-            # 데이터를 튜플 리스트로 변환
-            values = [
-                (
-                    stat.city_id,
-                    stat.district_id,
-                    stat.sub_district_id,
-                    stat.biz_main_category_id,
-                    stat.biz_sub_category_id,
-                    stat.biz_detail_category_id,
-                    stat.avg_val,
-                    stat.med_val,
-                    stat.std_val,
-                    stat.max_val,
-                    stat.min_val,
-                    stat.j_score_rank,
-                    stat.j_score_per,
-                    stat.j_score,
-                    stat.stat_level,
-                    stat.ref_date,
+                district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
                 )
-                for stat in stats
-            ]
 
-            # 여러 레코드 한 번에 삽입
-            cursor.executemany(insert_query, values)
+                time.sleep(1 + random.random())
 
-            # 변경사항 커밋
-            connection.commit()  # commit 함수 바로 호출
+                sub_district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
+                )
 
-            logger.info(f"Successfully inserted {len(stats)} records.")
-            return len(stats)
+                time.sleep(1 + random.random())
 
-    except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        connection.rollback()
+                main_category_ul_1 = wait.until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            '//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[1]',
+                        )
+                    )
+                )
+
+                main_category_ul_1_li = main_category_ul_1.find_elements(
+                    By.TAG_NAME, "li"
+                )
+                # print(f"대분류1 갯수 : {len(main_category_ul_1_li)}")
+
+                m_c_ul = 1
+
+                get_sub_category(
+                    city_idx,
+                    district_idx,
+                    sub_district_idx,
+                    len(main_category_ul_1_li),
+                    m_c_ul,
+                )
+            except UnexpectedAlertPresentException:
+                handle_unexpected_alert(wait._driver)
+            except Exception as e:
+                print(
+                    f"Exception occurred, 대분류1 반복 err, district_idx:  {district_idx}: {str(e)}"
+                )
+                continue
+            finally:
+                pass
+
+        for sub_district_idx in range(sub_district_count):
+            try:
+                print(f"idx: {district_idx}")
+                global_driver.get(BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
+                global_driver.implicitly_wait(10)
+
+                # 분석 지역
+                click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                city_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                sub_district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
+                )
+
+                main_category_ul_2 = wait.until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            '//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[3]',
+                        )
+                    )
+                )
+
+                main_category_ul_2_li = main_category_ul_2.find_elements(
+                    By.TAG_NAME, "li"
+                )
+
+                m_c_ul = 3
+
+                get_sub_category(
+                    city_idx,
+                    district_idx,
+                    sub_district_idx,
+                    len(main_category_ul_2_li),
+                    m_c_ul,
+                )
+            except UnexpectedAlertPresentException:
+                handle_unexpected_alert(wait._driver)
+            except Exception as e:
+                print(
+                    f"Exception occurred: 대분류2 반복 오류, district_idx: {district_idx}: {str(e)}"
+                )
+                continue
+            finally:
+                pass
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
-        connection.rollback()
+        print(
+            f"Exception occurred get_main_category(), sub_district: {sub_district_idx} {e}."
+        )
+        return None
     finally:
-        if cursor:
-            cursor.close()
-        if connection:
-            connection.close()
-
-    return 0  # 삽입 실패 시 0 반환
+        pass
 
 
-################################################################################################
-
-
-# 상권분석 j_score 가중치 평균
-def select_commercial_district_sub_district_detail_category_ids() -> (
-    List[CommercialDistrictSubDistrictDetailCategoryId]
+def get_sub_category(
+    city_idx, district_idx, sub_district_idx, main_category_count, m_c_ul
 ):
-    logger = logging.getLogger(__name__)
-
+    global global_driver
+    setup_global_driver()
     try:
-        with get_db_connection() as connection:
-            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-                select_query = """
-                    SELECT
-                        SUB_DISTRICT_ID,
-                        BIZ_DETAIL_CATEGORY_ID
-                    FROM
-                        COMMERCIAL_DISTRICT
-                    WHERE Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
-                    ;
-                """
+        for main_category_idx in tqdm(
+            range(main_category_count), f"동: {sub_district_idx}"
+        ):
 
-                cursor.execute(select_query)
-                rows = cursor.fetchall()
+            try:
+                global_driver.get(BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
+                global_driver.implicitly_wait(10)
 
-                result = []
-                for row in rows:
-                    if row["BIZ_DETAIL_CATEGORY_ID"] is not None:
-                        result.append(
-                            CommercialDistrictSubDistrictDetailCategoryId(
-                                sub_district_id=row["SUB_DISTRICT_ID"],
-                                detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                            )
+                # 분석 지역
+                click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                city_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                sub_district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                main_category_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul}]/li[{main_category_idx + 1}]',
+                )
+
+                sub_category_li = wait.until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "#basicReport ul.cate2 > ul")
+                    )
+                )
+                sub_category_ul_li_button = sub_category_li.find_elements(
+                    By.CSS_SELECTOR,
+                    "#basicReport  ul.cate2 > ul > li > button",
+                )
+                # print(f"중분류 갯수 : {len(sub_category_ul_li_button)}")
+
+                get_detail_category(
+                    city_idx,
+                    district_idx,
+                    sub_district_idx,
+                    main_category_idx,
+                    len(sub_category_ul_li_button),
+                    m_c_ul,
+                )
+            except UnexpectedAlertPresentException:
+                handle_unexpected_alert(wait._driver)
+            except Exception as e:
+                print(
+                    f"Error processing, main_category_idx: {main_category_idx}: {str(e)}"
+                )
+                continue
+            finally:
+                pass
+    except Exception as e:
+        print(
+            f"Exception occurred, get_sub_category(), main_category_idx: {main_category_idx} {e}."
+        )
+        return None
+    finally:
+        pass
+
+
+def get_detail_category(
+    city_idx,
+    district_idx,
+    sub_district_idx,
+    main_category_idx,
+    sub_category_count,
+    m_c_ul,
+):
+    global global_driver
+    setup_global_driver()
+    try:
+        for sub_category_idx in range(0, sub_category_count * 2, 2):
+
+            try:
+                global_driver.get(BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
+                global_driver.implicitly_wait(10)
+
+                # 분석 지역
+                click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                city_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                sub_district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
+                )
+
+                time.sleep(1 + random.random())
+
+                main_category_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul}]/li[{main_category_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                sub_category_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul + 1}]/ul/li[{sub_category_idx + 1}]',
+                )
+                # print(f"중분류 : {sub_category_text}")
+                detail_category_ul = wait.until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "#basicReport ul.cate3")
+                    )
+                )
+                detail_category_ul_li_button = detail_category_ul.find_elements(
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul + 1}]/ul/li[{sub_category_idx + 2}]/ul/li',
+                )
+                # print(f"소분류 갯수 : {len(detail_category_ul_li_button)}")
+
+                search_commercial_district(
+                    city_idx,
+                    district_idx,
+                    sub_district_idx,
+                    main_category_idx,
+                    sub_category_idx,
+                    len(detail_category_ul_li_button),
+                    m_c_ul,
+                )
+            except UnexpectedAlertPresentException:
+                handle_unexpected_alert(wait._driver)
+            except Exception as e:
+                print(f"Error processing sub_category_idx {sub_category_idx}: {str(e)}")
+                continue
+            finally:
+                pass
+    except Exception as e:
+        print(
+            f"Exception occurred get_detail_category(), sub_category_idx: {sub_category_idx} {e}."
+        )
+        return None
+    finally:
+        pass
+
+
+def search_commercial_district(
+    city_idx,
+    district_idx,
+    sub_district_idx,
+    main_category_idx,
+    sub_category_idx,
+    detail_category_count,
+    m_c_ul,
+):
+    global global_driver
+    setup_global_driver()
+    try:
+        for detail_category_idx in range(detail_category_count):
+
+            try:
+                start_time = time.time()
+                print(
+                    f"Execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}"
+                )
+
+                global_driver.get(BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
+                global_driver.implicitly_wait(10)
+
+                # 분석 지역
+                click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]',
+                )
+
+                time.sleep(1 + random.random())
+
+                city_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                sub_district_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                main_category_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul}]/li[{main_category_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                sub_category_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul + 1}]/ul/li[{sub_category_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                detail_category_text = click_element(
+                    global_driver,
+                    wait,
+                    By.XPATH,
+                    f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul + 1}]/ul/li[{sub_category_idx + 2}]/ul/li[{detail_category_idx + 1}]',
+                )
+
+                time.sleep(1 + random.random())
+
+                try:
+                    city_id = get_or_create_city_id(city_text)
+                    if city_id is None:
+                        print("Failed to get or create main city ID")
+                        continue
+                    # print(f"시/도: {city_text}, {city_id}")
+
+                    district_id = get_or_create_district_id(city_id, district_text)
+                    if district_id is None:
+                        print("Failed to get or create district ID")
+                        continue
+                    # print(f"시/군/구: {district_text}, {district_id}")
+
+                    sub_district_id = get_or_create_sub_district_id(
+                        city_id, district_id, sub_district_text
+                    )
+                    if sub_district_id is None:
+                        print("Failed to get or create sub_district ID")
+                        continue
+                    # print(f"읍/면/동: {sub_district_text}, {sub_district_id}")
+
+                except Exception as e:
+                    print(f"시 구 동 조회 오류 : {e}")
+                    continue
+
+                ###########################
+
+                try:
+                    main_category_id = get_or_create_biz_main_category_id(
+                        main_category_text
+                    )
+                    if main_category_id is None:
+                        # print("Failed to get or create main category ID")
+                        continue
+
+                    sub_category_id = get_or_create_biz_sub_category_id(
+                        main_category_id, sub_category_text
+                    )
+                    if sub_category_id is None:
+                        # print("Failed to get or create sub-category ID")
+                        continue
+
+                    if detail_category_text:
+                        detail_category_text = detail_category_text.replace(
+                            "(확장 분석)", ""
+                        ).strip()
+
+                    detail_category_id = get_or_create_biz_detail_category_id(
+                        sub_category_id, detail_category_text
+                    )
+                    if detail_category_id is None:
+                        print("Failed to get or create detail category ID")
+
+                except Exception as e:
+                    print(f"카테고리 조회 오류 : {e}")
+                    continue
+
+                if detail_category_text:
+                    print(detail_category_text)
+
+                    time.sleep(1 + random.random())
+
+                    # '//*[@id="report1"]' 요소가 나타날 때까지 기다리기
+                    try:
+                        # 상권분석 보기
+                        click_element(
+                            global_driver, wait, By.XPATH, '//*[@id="pcBasicReport"]'
                         )
 
-                return result
+                        wait.until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, '//*[@id="report1"]/div/div[3]/div/div')
+                            )
+                        )
+                    except TimeoutException:
+                        print(f"Element not found: //*[@id='report1'] 없거나 안뜸")
+                        continue
 
-    except Exception as e:
-        logger.error(
-            f"CommercialDistrictSubDistrictDetailCategoryId 가져오는 중 오류 발생: {e}"
-        )
-        raise
+                    wait = WebDriverWait(global_driver, 3)
 
-
-def select_commercial_district_j_score_weight_average_data(
-    mappings: List[CommercialDistrictSubDistrictDetailCategoryId],
-) -> List[CommercialDistrictWeightedAvgStatistics]:
-    logger = logging.getLogger(__name__)
-    results = []
-
-    # sub_district_id와 detail_category_id를 각각 추출하여 중복 제거 후 오름차순 정렬
-    sub_district_ids = sorted({mapping.sub_district_id for mapping in mappings})
-    detail_category_ids = sorted({mapping.detail_category_id for mapping in mappings})
-
-    # 중복 제거된 ID들을 문자열로 변환
-    sub_district_ids_str = ", ".join(map(str, sub_district_ids))
-    detail_category_ids_str = ", ".join(map(str, detail_category_ids))
-
-    try:
-        with get_db_connection() as connection:
-            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-
-                query = f"""
-                SELECT DISTINCT
-                    COALESCE(CDMSS.CITY_ID, CDUCS.CITY_ID, 
-                            CDASS.CITY_ID, CDSDDS.CITY_ID, 
-                            CDAPS.CITY_ID) AS CITY_ID,
-                    COALESCE(CDMSS.DISTRICT_ID, CDUCS.DISTRICT_ID, 
-                            CDASS.DISTRICT_ID, CDSDDS.DISTRICT_ID, 
-                            CDAPS.DISTRICT_ID) AS DISTRICT_ID,
-                    COALESCE(CDMSS.SUB_DISTRICT_ID, CDUCS.SUB_DISTRICT_ID, 
-                            CDASS.SUB_DISTRICT_ID, CDSDDS.SUB_DISTRICT_ID, 
-                            CDAPS.SUB_DISTRICT_ID) AS SUB_DISTRICT_ID,
-                    COALESCE(CDMSS.BIZ_MAIN_CATEGORY_ID, CDUCS.BIZ_MAIN_CATEGORY_ID, 
-                            CDASS.BIZ_MAIN_CATEGORY_ID, CDSDDS.BIZ_MAIN_CATEGORY_ID, 
-                            CDAPS.BIZ_MAIN_CATEGORY_ID) AS BIZ_MAIN_CATEGORY_ID,
-                    COALESCE(CDMSS.BIZ_SUB_CATEGORY_ID, CDUCS.BIZ_SUB_CATEGORY_ID, 
-                            CDASS.BIZ_SUB_CATEGORY_ID, CDSDDS.BIZ_SUB_CATEGORY_ID, 
-                            CDAPS.BIZ_SUB_CATEGORY_ID) AS BIZ_SUB_CATEGORY_ID,           
-                    COALESCE(CDMSS.BIZ_DETAIL_CATEGORY_ID, CDUCS.BIZ_DETAIL_CATEGORY_ID, 
-                            CDASS.BIZ_DETAIL_CATEGORY_ID, CDSDDS.BIZ_DETAIL_CATEGORY_ID, 
-                            CDAPS.BIZ_DETAIL_CATEGORY_ID) AS BIZ_DETAIL_CATEGORY_ID,
-                    CDMSS.J_SCORE_RANK AS MARKET_SIZE_J_RANK,
-                    CDUCS.J_SCORE_RANK AS USAGE_COUNT_J_RANK,
-                    CDASS.J_SCORE_RANK AS AVERAGE_SALES_J_RANK,
-                    CDSDDS.J_SCORE_RANK AS SUB_DISTRICT_DENSITY_J_RANK,
-                    CDAPS.J_SCORE_RANK AS AVERAGE_PAYMENT_J_RANK,
-                    CDMSS.J_SCORE_PER AS MARKET_SIZE_J_PER,
-                    CDUCS.J_SCORE_PER AS USAGE_COUNT_J_PER,
-                    CDASS.J_SCORE_PER AS AVERAGE_SALES_J_PER,
-                    CDSDDS.J_SCORE_PER AS SUB_DISTRICT_DENSITY_J_PER,
-                    CDAPS.J_SCORE_PER AS AVERAGE_PAYMENT_J_PER,
-                    COALESCE(CDMSS.REF_DATE, CDUCS.REF_DATE, 
-                            CDASS.REF_DATE, CDSDDS.REF_DATE, 
-                            CDAPS.REF_DATE) AS REF_DATE
-                    FROM
-                    SUB_DISTRICT SD
-                    LEFT JOIN COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS CDMSS 
-                    ON CDMSS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
-                    AND CDMSS.BIZ_DETAIL_CATEGORY_ID IN ({detail_category_ids_str})
-                    LEFT JOIN COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS CDUCS 
-                    ON CDUCS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
-                    AND CDUCS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
-                    LEFT JOIN COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS CDASS 
-                    ON CDASS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
-                    AND CDASS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
-                    LEFT JOIN COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS CDSDDS 
-                    ON CDSDDS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
-                    AND CDSDDS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
-                    LEFT JOIN COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS CDAPS 
-                    ON CDAPS.SUB_DISTRICT_ID = SD.SUB_DISTRICT_ID 
-                    AND CDAPS.BIZ_DETAIL_CATEGORY_ID = CDMSS.BIZ_DETAIL_CATEGORY_ID
-                    WHERE
-                    SD.SUB_DISTRICT_ID IN ({sub_district_ids_str})
-                    AND CDMSS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_MARKET_SIZE_STATISTICS)
-                    AND CDUCS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_USEAGE_COUNT_STATISTICS)
-                    AND CDASS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_AVERAGE_SALES_STATISTICS)
-                    AND CDSDDS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_STATISTICS)
-                    AND CDAPS.REF_DATE = (SELECT MAX(REF_DATE) FROM COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_STATISTICS)
-                    ;
-                """
-
-                # logger.warning(f"Generated SQL Query: {query}")
-
-                cursor.execute(query)
-                rows = cursor.fetchall()
-
-                # print(rows[0])
-                # print(rows[1])
-                # print(rows[2])
-                # print(rows[3])
-                # print(rows[46])
-
-            # 서브디스트릭트별로 데이터를 그룹화
-            sub_district_data: Dict[int, List[Dict]] = defaultdict(list)
-            for row in rows:
-                if row["SUB_DISTRICT_ID"] is not None:
-                    sub_district_data[row["SUB_DISTRICT_ID"]].append(row)
-
-            # 모든 ROW에 대한 중간 결과를 저장할 리스트
-            intermediate_results = []
-
-            # 각 행에 대해 가중치를 적용하고 평균 계산
-            for row in rows:
-                row_ranks = []
-                row_pers = []
-
-                # AVERAGE_SALES에 1.5 가중치 적용
-                if row["AVERAGE_SALES_J_RANK"] is not None:
-                    row_ranks.append(float(row["AVERAGE_SALES_J_RANK"]) * 1.5)
-                if row["AVERAGE_SALES_J_PER"] is not None:
-                    row_pers.append(float(row["AVERAGE_SALES_J_PER"]) * 1.5)
-
-                # 나머지 항목들 추가
-                rank_keys = [
-                    "MARKET_SIZE_J_RANK",
-                    "USAGE_COUNT_J_RANK",
-                    "SUB_DISTRICT_DENSITY_J_RANK",
-                    "AVERAGE_PAYMENT_J_RANK",
-                ]
-                per_keys = [
-                    "MARKET_SIZE_J_PER",
-                    "USAGE_COUNT_J_PER",
-                    "SUB_DISTRICT_DENSITY_J_PER",
-                    "AVERAGE_PAYMENT_J_PER",
-                ]
-
-                for key in rank_keys:
-                    if row[key] is not None:
-                        row_ranks.append(float(row[key]))
-
-                for key in per_keys:
-                    if row[key] is not None:
-                        row_pers.append(float(row[key]))
-
-                # 평균 계산
-                avg_rank = sum(row_ranks) / len(row_ranks) if row_ranks else 0
-                avg_per = sum(row_pers) / len(row_pers) if row_pers else 0
-
-                intermediate_results.append(
-                    {"row_data": row, "avg_rank": avg_rank, "avg_per": avg_per}
-                )
-
-            # 최대값 계산
-            max_rank = (
-                max(result["avg_rank"] for result in intermediate_results)
-                if intermediate_results
-                else 1
-            )
-            max_per = (
-                max(result["avg_per"] for result in intermediate_results)
-                if intermediate_results
-                else 1
-            )
-
-            # 최종 결과 생성
-            results = []
-            for item in intermediate_results:
-                row = item["row_data"]
-                # 10점 만점으로 정규화
-                normalized_rank = (
-                    10 * (item["avg_rank"] / max_rank) if max_rank != 0 else 0
-                )
-                normalized_per = 10 * (item["avg_per"] / max_per) if max_per != 0 else 0
-
-                result = CommercialDistrictWeightedAvgStatistics(
-                    city_id=row["CITY_ID"],
-                    district_id=row["DISTRICT_ID"],
-                    sub_district_id=row["SUB_DISTRICT_ID"],
-                    biz_main_category_id=row["BIZ_MAIN_CATEGORY_ID"],
-                    biz_sub_category_id=row["BIZ_SUB_CATEGORY_ID"],
-                    biz_detail_category_id=row["BIZ_DETAIL_CATEGORY_ID"],
-                    j_score_rank=normalized_rank,
-                    j_score_per=normalized_per,
-                    j_score=(normalized_rank + normalized_per) / 2,
-                    stat_level="전국",
-                    ref_date=row["REF_DATE"],
-                )
-                results.append(result)
-
-            return results
-
-    except Exception as e:
-        logger.error(
-            f"Error processing batch CommercialDistrictWeightedAvgStatistics: {e}"
-        )
-        raise
-
-
-def insert_or_update_commercial_district_j_score_weight_average_data_batch(
-    batch: List[CommercialDistrictWeightedAvgStatistics],
-) -> None:
-    try:
-        with get_db_connection() as connection:
-            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-                insert_query = """
-                    INSERT INTO COMMERCIAL_DISTRICT_WEIGHTED_AVERAGE (
-                        CITY_ID, 
-                        DISTRICT_ID,
-                        SUB_DISTRICT_ID, 
-                        BIZ_MAIN_CATEGORY_ID,
-                        BIZ_SUB_CATEGORY_ID,
-                        BIZ_DETAIL_CATEGORY_ID,
-                        J_SCORE_RANK_AVG,
-                        J_SCORE_PER_AVG,
-                        J_SCORE_AVG,
-                        STAT_LEVEL,
-                        REF_DATE
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE
-                        CITY_ID = VALUES(CITY_ID),
-                        DISTRICT_ID = VALUES(DISTRICT_ID),
-                        SUB_DISTRICT_ID = VALUES(SUB_DISTRICT_ID),
-                        BIZ_MAIN_CATEGORY_ID = VALUES(BIZ_MAIN_CATEGORY_ID),
-                        BIZ_SUB_CATEGORY_ID = VALUES(BIZ_SUB_CATEGORY_ID),
-                        BIZ_DETAIL_CATEGORY_ID = VALUES(BIZ_DETAIL_CATEGORY_ID),
-                        J_SCORE_RANK_AVG = VALUES(J_SCORE_RANK_AVG),
-                        J_SCORE_PER_AVG = VALUES(J_SCORE_PER_AVG),
-                        J_SCORE_AVG = VALUES(J_SCORE_AVG),
-                        STAT_LEVEL = VALUES(STAT_LEVEL),
-                        REF_DATE = VALUES(REF_DATE)
-                    ;
-                """
-
-                values = [
-                    (
-                        cd_info.city_id,
-                        cd_info.district_id,
-                        cd_info.sub_district_id,
-                        cd_info.biz_main_category_id,
-                        cd_info.biz_sub_category_id,
-                        cd_info.biz_detail_category_id,
-                        cd_info.j_score_rank,
-                        cd_info.j_score_per,
-                        cd_info.j_score,
-                        cd_info.stat_level,
-                        cd_info.ref_date,
+                    # 분석 텍스트 보기 없애기
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[4]/div[1]/div/div/div/div[1]/div[2]/label',
                     )
-                    for cd_info in batch
-                ]
 
-                cursor.executemany(insert_query, values)
-                connection.commit()
+                    time.sleep(1 + random.random())
 
+                    # 표 전제보기
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[4]/div[1]/div/div/div/div[1]/div[1]/label',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 밀집도 클릭
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[3]/div/ul/li[2]',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 전국 해당 업종수 밀집도 데이터
+                    national_density = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s2"]/div[2]/div[2]/div/div[2]/table/tbody/tr[3]/td[2]',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 해당 시/도, 해당 업종수 밀집도 데이터
+                    city_density = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s2"]/div[2]/div[2]/div/div[2]/table/tbody/tr[3]/td[3]',
+                    )
+
+                    # 해당 시/군/구, 해당 업종수 밀집도 데이터
+                    district_density = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s2"]/div[2]/div[2]/div/div[2]/table/tbody/tr[3]/td[4]',
+                    )
+
+                    # 해당 읍/면/동, 해당 업종수 밀집도 데이터
+                    sub_district_density = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s2"]/div[2]/div[2]/div/div[2]/table/tbody/tr[3]/td[5]',
+                    )
+
+                    # 시장규모 클릭
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[3]/div/ul/li[3]',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 해당지역 업종 총 시장규모(원) 제일 최신
+                    market_size = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s3"]/div[2]/div[2]/div[2]/table/tbody/tr/td[7]',
+                    )
+
+                    # 결제단가 클릭
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[3]/div/ul/li[6]',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 해당지역 업종 결제단가(원)
+                    average_payment = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s6"]/div[2]/div[2]/div[2]/table/tbody/tr[2]/td[7]',
+                    )
+
+                    # 해당지역 업종 이용건수(건)
+                    usage_count = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s6"]/div[2]/div[2]/div[2]/table/tbody/tr[1]/td[7]',
+                    )
+
+                    # 비용/수익통계 대분류:1 음식일때만
+                    if main_category_id == 1:
+                        # 비용/수익통계 클릭
+                        click_element(
+                            global_driver,
+                            wait,
+                            By.XPATH,
+                            '//*[@id="report1"]/div/div[3]/div/ul/li[7]',
+                        )
+
+                        time.sleep(1 + random.random())
+
+                        # 해당지역 업종 점포당 매출규모(원)
+                        average_sales = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[1]/p[2]/b',
+                        )
+
+                        # 해당지역 영업비용(원)
+                        operating_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[2]/p[2]/b',
+                        )
+
+                        # 식재료비(원)
+                        food_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[1]/p[2]',
+                        )
+
+                        # 고용인 인건비(원)
+                        employee_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[2]/p[2]',
+                        )
+
+                        # 임차료(원)
+                        rental_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[3]/p[2]',
+                        )
+
+                        # 세금(원)
+                        tax_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[4]/p[2]',
+                        )
+
+                        # 가족 종사자 인건비(원)
+                        family_employee_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[5]/p[2]',
+                        )
+
+                        # 대표자 인건비(원)
+                        ceo_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[6]/p[2]',
+                        )
+
+                        # 기타 인건비(원)
+                        etc_cost = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[3]/ul/li[7]/p[2]',
+                        )
+
+                        # 해당지역 평균 영업이익(원)
+                        average_profit = read_element(
+                            wait,
+                            By.XPATH,
+                            '//*[@id="receipt1"]/div/div[2]/ul/li[4]/p[2]/b',
+                        )
+                    else:
+                        average_sales = 0
+                        operating_cost = 0
+                        food_cost = 0
+                        employee_cost = 0
+                        rental_cost = 0
+                        tax_cost = 0
+                        family_employee_cost = 0
+                        ceo_cost = 0
+                        etc_cost = 0
+                        average_profit = 0
+
+                    # 매출 비중 클릭
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[3]/div/ul/li[8]',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 해당지역 업종 매출 요일별 (월요일 %)
+                    avg_profit_per_mon = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[2]',
+                    )
+
+                    # 해당지역 업종 매출 요일별 (화요일 %)
+                    avg_profit_per_tue = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[3]',
+                    )
+
+                    # 해당지역 업종 매출 요일별 (수요일 %)
+                    avg_profit_per_wed = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[4]',
+                    )
+
+                    # 해당지역 업종 매출 요일별 (목요일 %)
+                    avg_profit_per_thu = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[5]',
+                    )
+
+                    # 해당지역 업종 매출 요일별 (금요일 %)
+                    avg_profit_per_fri = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[6]',
+                    )
+
+                    # 해당지역 업종 매출 요일별 (토요일 %)
+                    avg_profit_per_sat = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[7]',
+                    )
+
+                    # 해당지역 업종 매출 요일별 (일요일 %)
+                    avg_profit_per_sun = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[1]/tbody/tr/td[8]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (06 ~ 09  %)
+                    avg_profit_per_06_09 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[2]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (09 ~ 12  %)
+                    avg_profit_per_09_12 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[3]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (12 ~ 15  %)
+                    avg_profit_per_12_15 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[4]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (15 ~ 18  %)
+                    avg_profit_per_15_18 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[5]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (18 ~ 21  %)
+                    avg_profit_per_18_21 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[6]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (21 ~ 24  %)
+                    avg_profit_per_21_24 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[7]',
+                    )
+
+                    # 해당지역 업종 매출 시간별 (24 ~ 06  %)
+                    avg_profit_per_24_06 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s8"]/div[2]/div[2]/div[2]/table[2]/tbody/tr[2]/td[8]',
+                    )
+
+                    # 고객 비중 클릭
+                    click_element(
+                        global_driver,
+                        wait,
+                        By.XPATH,
+                        '//*[@id="report1"]/div/div[3]/div/ul/li[9]',
+                    )
+
+                    time.sleep(1 + random.random())
+
+                    # 남 20대
+                    avg_client_per_m_20 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[1]/td[2]',
+                    )
+
+                    # 남 30대
+                    avg_client_per_m_30 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[1]/td[3]',
+                    )
+
+                    # 남 40대
+                    avg_client_per_m_40 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[1]/td[4]',
+                    )
+
+                    # 남 50대
+                    avg_client_per_m_50 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[1]/td[5]',
+                    )
+
+                    # 남 60대 이상
+                    avg_client_per_m_60 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[1]/td[6]',
+                    )
+
+                    # 여 20대
+                    avg_client_per_f_20 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[2]/td[2]',
+                    )
+
+                    # 여 30대
+                    avg_client_per_f_30 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[2]/td[3]',
+                    )
+
+                    # 여 40대
+                    avg_client_per_f_40 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[2]/td[4]',
+                    )
+
+                    # 여 50대
+                    avg_client_per_f_50 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[2]/td[5]',
+                    )
+
+                    # 여 60대 이상
+                    avg_client_per_f_60 = read_element(
+                        wait,
+                        By.XPATH,
+                        '//*[@id="s9"]/div[2]/div[2]/div[2]/table[1]/tbody/tr[2]/td[6]',
+                    )
+
+                    top5_menu_elements = []
+
+                    # 뜨는 메뉴 대분류: 음식일때만
+                    if main_category_id == 1:
+                        try:
+                            # 주요 메뉴/뜨는 메뉴 클릭
+                            click_element(
+                                global_driver,
+                                wait,
+                                By.XPATH,
+                                '//*[@id="report1"]/div/div[3]/div/ul/li[11]',
+                            )
+
+                            time.sleep(1 + random.random())
+
+                            # 뜨는 메뉴 클릭
+                            click_element(
+                                global_driver,
+                                wait,
+                                By.XPATH,
+                                '//*[@id="s11"]/div[2]/div[2]/div/div[1]/ul/li[2]/button',
+                            )
+
+                            time.sleep(1 + random.random())
+
+                            wait.until(
+                                EC.presence_of_element_located(
+                                    (
+                                        By.XPATH,
+                                        '//*[@id="s11"]/div[2]/div[2]',
+                                    )
+                                )
+                            )
+
+                            for i in range(5):
+                                try:
+                                    element = wait.until(
+                                        EC.presence_of_element_located(
+                                            (
+                                                By.XPATH,
+                                                f'//*[@id="popular_graph"]/div/div[2]/div[2]/table/tbody/tr[{i + 1}]/td[3]',
+                                            )
+                                        )
+                                    )
+                                    top5_menu_elements.append(element.text)
+                                except:
+                                    top5_menu_elements.append(None)
+                        except:
+                            top5_menu_elements = [None] * 5
+                    else:
+                        top5_menu_elements = [None] * 5
+
+                    top_menu_1 = top5_menu_elements[0]
+                    top_menu_2 = top5_menu_elements[1]
+                    top_menu_3 = top5_menu_elements[2]
+                    top_menu_4 = top5_menu_elements[3]
+                    top_menu_5 = top5_menu_elements[4]
+
+                    data: CommercialDistrictInsert = {
+                        "city_id": city_id,
+                        "district_id": district_id,
+                        "sub_district_id": sub_district_id,
+                        ###
+                        "biz_main_category_id": main_category_id,
+                        "biz_sub_category_id": sub_category_id,
+                        "biz_detail_category_id": detail_category_id,
+                        ###
+                        "national_density": convert_to_int_float(national_density)
+                        or 0.0,
+                        "city_density": convert_to_int_float(city_density) or 0.0,
+                        "district_density": convert_to_int_float(district_density)
+                        or 0.0,
+                        "sub_district_density": convert_to_int_float(
+                            sub_district_density
+                        )
+                        or 0.0,
+                        ###
+                        "market_size": convert_to_int_float(market_size) or 0,
+                        ###
+                        "average_payment": convert_to_int_float(average_payment) or 0,
+                        "usage_count": convert_to_int_float(usage_count) or 0,
+                        ###
+                        "average_sales": convert_to_int_float(average_sales) or 0,
+                        "operating_cost": convert_to_int_float(operating_cost) or 0,
+                        "food_cost": convert_to_int_float(food_cost) or 0,
+                        "employee_cost": convert_to_int_float(employee_cost) or 0,
+                        "rental_cost": convert_to_int_float(rental_cost) or 0,
+                        "tax_cost": convert_to_int_float(tax_cost) or 0,
+                        "family_employee_cost": convert_to_int_float(
+                            family_employee_cost
+                        )
+                        or 0,
+                        "ceo_cost": convert_to_int_float(ceo_cost) or 0,
+                        "etc_cost": convert_to_int_float(etc_cost) or 0,
+                        "average_profit": convert_to_int_float(average_profit) or 0,
+                        ###
+                        "avg_profit_per_mon": convert_to_int_float(avg_profit_per_mon)
+                        or 0.0,
+                        "avg_profit_per_tue": convert_to_int_float(avg_profit_per_tue)
+                        or 0.0,
+                        "avg_profit_per_wed": convert_to_int_float(avg_profit_per_wed)
+                        or 0.0,
+                        "avg_profit_per_thu": convert_to_int_float(avg_profit_per_thu)
+                        or 0.0,
+                        "avg_profit_per_fri": convert_to_int_float(avg_profit_per_fri)
+                        or 0.0,
+                        "avg_profit_per_sat": convert_to_int_float(avg_profit_per_sat)
+                        or 0.0,
+                        "avg_profit_per_sun": convert_to_int_float(avg_profit_per_sun)
+                        or 0.0,
+                        ###
+                        "avg_profit_per_06_09": convert_to_int_float(
+                            avg_profit_per_06_09
+                        )
+                        or 0.0,
+                        "avg_profit_per_09_12": convert_to_int_float(
+                            avg_profit_per_09_12
+                        )
+                        or 0.0,
+                        "avg_profit_per_12_15": convert_to_int_float(
+                            avg_profit_per_12_15
+                        )
+                        or 0.0,
+                        "avg_profit_per_15_18": convert_to_int_float(
+                            avg_profit_per_15_18
+                        )
+                        or 0.0,
+                        "avg_profit_per_18_21": convert_to_int_float(
+                            avg_profit_per_18_21
+                        )
+                        or 0.0,
+                        "avg_profit_per_21_24": convert_to_int_float(
+                            avg_profit_per_21_24
+                        )
+                        or 0.0,
+                        "avg_profit_per_24_06": convert_to_int_float(
+                            avg_profit_per_24_06
+                        )
+                        or 0.0,
+                        ###
+                        "avg_client_per_m_20": convert_to_int_float(avg_client_per_m_20)
+                        or 0.0,
+                        "avg_client_per_m_30": convert_to_int_float(avg_client_per_m_30)
+                        or 0.0,
+                        "avg_client_per_m_40": convert_to_int_float(avg_client_per_m_40)
+                        or 0.0,
+                        "avg_client_per_m_50": convert_to_int_float(avg_client_per_m_50)
+                        or 0.0,
+                        "avg_client_per_m_60": convert_to_int_float(avg_client_per_m_60)
+                        or 0.0,
+                        "avg_client_per_f_20": convert_to_int_float(avg_client_per_f_20)
+                        or 0.0,
+                        "avg_client_per_f_30": convert_to_int_float(avg_client_per_f_30)
+                        or 0.0,
+                        "avg_client_per_f_40": convert_to_int_float(avg_client_per_f_40)
+                        or 0.0,
+                        "avg_client_per_f_50": convert_to_int_float(avg_client_per_f_50)
+                        or 0.0,
+                        "avg_client_per_f_60": convert_to_int_float(avg_client_per_f_60)
+                        or 0.0,
+                        ###
+                        "top_menu_1": top_menu_1,
+                        "top_menu_2": top_menu_2,
+                        "top_menu_3": top_menu_3,
+                        "top_menu_4": top_menu_4,
+                        "top_menu_5": top_menu_5,
+                        "y_m": "2024-09-30",
+                    }
+
+                    # print(data)
+
+                    insert_commercial_district(data)
+
+                    end_time = time.time()
+
+                    print(
+                        f"Execution finished at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}"
+                    )
+
+                    print(f"Total execution time: {end_time - start_time} seconds")
+
+                else:
+                    print(
+                        f"NO DATA : {city_text}, {district_text}, {sub_district_text}, {main_category_text}, {sub_category_text} : index {detail_category_idx}."
+                    )
+                    # continue
+            except UnexpectedAlertPresentException:
+                handle_unexpected_alert(wait._driver)
+            except Exception as e:
+                print(
+                    f"Error processing {city_text}, {district_text}, {sub_district_text}, {main_category_text}, {sub_category_text} : index {detail_category_idx}. {str(e)}"
+                )
+                continue
     except Exception as e:
-        logging.error(
-            f"Error inserting/updating commercial_district CommercialDistrictWeightedAvgStatistics data: {e}"
+        print(
+            f"Exception occurred search_commercial_district(), detail_category_idx: {detail_category_idx} {e}."
         )
-        raise
+        return None
+    finally:
+        pass
+
+
+def execute_task_in_thread(value):
+    with ThreadPoolExecutor(max_workers=18) as executor:
+        futures = [
+            # executor.submit(get_sub_district_count, 0, value),
+            executor.submit(get_district_count, value),
+        ]
+        for future in futures:
+            future.result()
+
+
+@time_execution
+def execute_parallel_tasks():
+
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    values = [8, 9, 10, 11, 12, 13, 14, 15]  # pc1
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 16]  # pc2
+
+    with Pool(processes=len(values)) as pool:
+        pool.starmap(execute_task_in_thread, [(value,) for value in values])
+
+
+if __name__ == "__main__":
+    execute_parallel_tasks()
+    print(f"상권분석 END")
+
+    # 컴퓨터 종료 명령어 (운영체제에 따라 다름)
+    # if os.name == "nt":  # Windows
+    #     os.system("shutdown /s /t 1")
+    # else:  # Unix-based (Linux, macOS)
+    #     os.system("shutdown -h now")
