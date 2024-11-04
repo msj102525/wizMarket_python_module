@@ -37,6 +37,21 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
 )
 
+
+# 시간 재는 함수
+def time_execution(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(
+            f"Execution time for {func.__name__}: {end_time - start_time:.2f} seconds"
+        )
+        return result
+
+    return wrapper
+
+
 BIZ_MAP_URL = "https://m.nicebizmap.co.kr/analysis/analysisFree"
 # BIZ_MAP_URL = "https://m.nicebizmap.co.kr/"
 
@@ -58,7 +73,6 @@ def setup_global_driver():
         global_driver = webdriver.Chrome(service=service, options=options)
 
     return global_driver
-
 
 
 def click_element(driver, wait, by, value):
@@ -141,7 +155,7 @@ def get_district_count(city_idx):
         global_driver.get(BIZ_MAP_URL)
         wait = WebDriverWait(global_driver, 40)
 
-        time.sleep(2 + random.random())
+        time.sleep(1 + random.random())
 
         # 분석 지역
         click_element(
@@ -151,7 +165,7 @@ def get_district_count(city_idx):
             '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
         )
 
-        time.sleep(2 + random.random())
+        time.sleep(1 + random.random())
 
         city_text = click_element(
             global_driver,
@@ -159,7 +173,6 @@ def get_district_count(city_idx):
             By.XPATH,
             f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
         )
-
 
         district_ul = wait.until(
             EC.presence_of_element_located(
@@ -197,7 +210,7 @@ def get_sub_district_count(city_idx, district_count):
                 wait = WebDriverWait(global_driver, 40)
                 global_driver.implicitly_wait(10)
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 # 분석 지역
                 click_element(
@@ -207,7 +220,7 @@ def get_sub_district_count(city_idx, district_count):
                     '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 city_text = click_element(
                     global_driver,
@@ -216,7 +229,7 @@ def get_sub_district_count(city_idx, district_count):
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 district_text = click_element(
                     global_driver,
@@ -270,7 +283,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 city_text = click_element(
                     global_driver,
@@ -279,7 +292,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 district_text = click_element(
                     global_driver,
@@ -288,7 +301,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_district_text = click_element(
                     global_driver,
@@ -297,7 +310,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 main_category_ul_1 = wait.until(
                     EC.presence_of_element_located(
@@ -347,7 +360,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 city_text = click_element(
                     global_driver,
@@ -356,7 +369,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 district_text = click_element(
                     global_driver,
@@ -365,7 +378,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_district_text = click_element(
                     global_driver,
@@ -437,7 +450,7 @@ def get_sub_category(
                     '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 city_text = click_element(
                     global_driver,
@@ -446,7 +459,7 @@ def get_sub_category(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 district_text = click_element(
                     global_driver,
@@ -455,7 +468,7 @@ def get_sub_category(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_district_text = click_element(
                     global_driver,
@@ -464,7 +477,7 @@ def get_sub_category(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 main_category_text = click_element(
                     global_driver,
@@ -536,7 +549,7 @@ def get_detail_category(
                     '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 city_text = click_element(
                     global_driver,
@@ -545,7 +558,7 @@ def get_detail_category(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 district_text = click_element(
                     global_driver,
@@ -554,7 +567,7 @@ def get_detail_category(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_district_text = click_element(
                     global_driver,
@@ -563,7 +576,7 @@ def get_detail_category(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]/a',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 main_category_text = click_element(
                     global_driver,
@@ -572,7 +585,7 @@ def get_detail_category(
                     f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul}]/li[{main_category_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_category_text = click_element(
                     global_driver,
@@ -649,7 +662,7 @@ def search_commercial_district(
                     '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 city_text = click_element(
                     global_driver,
@@ -658,7 +671,7 @@ def search_commercial_district(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 district_text = click_element(
                     global_driver,
@@ -667,7 +680,7 @@ def search_commercial_district(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_district_text = click_element(
                     global_driver,
@@ -676,7 +689,7 @@ def search_commercial_district(
                     f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{sub_district_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 main_category_text = click_element(
                     global_driver,
@@ -685,7 +698,7 @@ def search_commercial_district(
                     f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul}]/li[{main_category_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 sub_category_text = click_element(
                     global_driver,
@@ -694,7 +707,7 @@ def search_commercial_district(
                     f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul + 1}]/ul/li[{sub_category_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 detail_category_text = click_element(
                     global_driver,
@@ -703,20 +716,20 @@ def search_commercial_district(
                     f'//*[@id="basicReport"]/div[5]/div[3]/div[2]/div/ul[{m_c_ul + 1}]/ul/li[{sub_category_idx + 2}]/ul/li[{detail_category_idx + 1}]',
                 )
 
-                time.sleep(2 + random.random())
+                time.sleep(1 + random.random())
 
                 try:
                     city_id = get_or_create_city_id(city_text)
                     if city_id is None:
                         print("Failed to get or create main city ID")
                         continue
-                    print(f"시/도: {city_text}, {city_id}")
+                    # print(f"시/도: {city_text}, {city_id}")
 
                     district_id = get_or_create_district_id(city_id, district_text)
                     if district_id is None:
                         print("Failed to get or create district ID")
                         continue
-                    print(f"시/군/구: {district_text}, {district_id}")
+                    # print(f"시/군/구: {district_text}, {district_id}")
 
                     sub_district_id = get_or_create_sub_district_id(
                         city_id, district_id, sub_district_text
@@ -724,7 +737,7 @@ def search_commercial_district(
                     if sub_district_id is None:
                         print("Failed to get or create sub_district ID")
                         continue
-                    print(f"읍/면/동: {sub_district_text}, {sub_district_id}")
+                    # print(f"읍/면/동: {sub_district_text}, {sub_district_id}")
 
                 except Exception as e:
                     print(f"시 구 동 조회 오류 : {e}")
@@ -737,14 +750,14 @@ def search_commercial_district(
                         main_category_text
                     )
                     if main_category_id is None:
-                        print("Failed to get or create main category ID")
+                        # print("Failed to get or create main category ID")
                         continue
 
                     sub_category_id = get_or_create_biz_sub_category_id(
                         main_category_id, sub_category_text
                     )
                     if sub_category_id is None:
-                        print("Failed to get or create sub-category ID")
+                        # print("Failed to get or create sub-category ID")
                         continue
 
                     if detail_category_text:
@@ -765,7 +778,7 @@ def search_commercial_district(
                 if detail_category_text:
                     print(detail_category_text)
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # '//*[@id="report1"]' 요소가 나타날 때까지 기다리기
                     try:
@@ -793,7 +806,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[4]/div[1]/div/div/div/div[1]/div[2]/label',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 표 전제보기
                     click_element(
@@ -803,7 +816,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[4]/div[1]/div/div/div/div[1]/div[1]/label',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 밀집도 클릭
                     click_element(
@@ -813,7 +826,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[3]/div/ul/li[2]',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 전국 해당 업종수 밀집도 데이터
                     national_density = read_element(
@@ -822,7 +835,7 @@ def search_commercial_district(
                         '//*[@id="s2"]/div[2]/div[2]/div/div[2]/table/tbody/tr[3]/td[2]',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 해당 시/도, 해당 업종수 밀집도 데이터
                     city_density = read_element(
@@ -853,7 +866,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[3]/div/ul/li[3]',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 해당지역 업종 총 시장규모(원) 제일 최신
                     market_size = read_element(
@@ -870,7 +883,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[3]/div/ul/li[6]',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 해당지역 업종 결제단가(원)
                     average_payment = read_element(
@@ -896,7 +909,7 @@ def search_commercial_district(
                             '//*[@id="report1"]/div/div[3]/div/ul/li[7]',
                         )
 
-                        time.sleep(2 + random.random())
+                        time.sleep(1 + random.random())
 
                         # 해당지역 업종 점포당 매출규모(원)
                         average_sales = read_element(
@@ -987,7 +1000,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[3]/div/ul/li[8]',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 해당지역 업종 매출 요일별 (월요일 %)
                     avg_profit_per_mon = read_element(
@@ -1095,7 +1108,7 @@ def search_commercial_district(
                         '//*[@id="report1"]/div/div[3]/div/ul/li[9]',
                     )
 
-                    time.sleep(2 + random.random())
+                    time.sleep(1 + random.random())
 
                     # 남 20대
                     avg_client_per_m_20 = read_element(
@@ -1180,7 +1193,7 @@ def search_commercial_district(
                                 '//*[@id="report1"]/div/div[3]/div/ul/li[11]',
                             )
 
-                            time.sleep(2 + random.random())
+                            time.sleep(1 + random.random())
 
                             # 뜨는 메뉴 클릭
                             click_element(
@@ -1190,7 +1203,7 @@ def search_commercial_district(
                                 '//*[@id="s11"]/div[2]/div[2]/div/div[1]/ul/li[2]/button',
                             )
 
-                            time.sleep(2 + random.random())
+                            time.sleep(1 + random.random())
 
                             wait.until(
                                 EC.presence_of_element_located(
@@ -1385,7 +1398,7 @@ def execute_parallel_tasks():
     )
 
     # values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-    values = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    values = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
     with Pool(processes=len(values)) as pool:
         pool.starmap(execute_task_in_thread, [(value,) for value in values])

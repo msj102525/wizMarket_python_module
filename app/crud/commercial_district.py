@@ -37,7 +37,7 @@ def insert_commercial_district(data: CommercialDistrictInsert):
             avg_profit_per_06_09, avg_profit_per_09_12, avg_profit_per_12_15, avg_profit_per_15_18, avg_profit_per_18_21, avg_profit_per_21_24, avg_profit_per_24_06,
             avg_client_per_m_20, avg_client_per_m_30, avg_client_per_m_40, avg_client_per_m_50, avg_client_per_m_60,
             avg_client_per_f_20, avg_client_per_f_30, avg_client_per_f_40, avg_client_per_f_50, avg_client_per_f_60,
-            top_menu_1, top_menu_2, top_menu_3, top_menu_4, top_menu_5
+            top_menu_1, top_menu_2, top_menu_3, top_menu_4, top_menu_5, y_m
         ) VALUES (
             %(city_id)s, %(district_id)s, %(sub_district_id)s, 
             %(biz_main_category_id)s, %(biz_sub_category_id)s, %(biz_detail_category_id)s,
@@ -49,7 +49,7 @@ def insert_commercial_district(data: CommercialDistrictInsert):
             %(avg_profit_per_06_09)s, %(avg_profit_per_09_12)s, %(avg_profit_per_12_15)s, %(avg_profit_per_15_18)s, %(avg_profit_per_18_21)s, %(avg_profit_per_21_24)s, %(avg_profit_per_24_06)s,
             %(avg_client_per_m_20)s, %(avg_client_per_m_30)s, %(avg_client_per_m_40)s, %(avg_client_per_m_50)s, %(avg_client_per_m_60)s,
             %(avg_client_per_f_20)s, %(avg_client_per_f_30)s, %(avg_client_per_f_40)s, %(avg_client_per_f_50)s, %(avg_client_per_f_60)s,
-            %(top_menu_1)s, %(top_menu_2)s, %(top_menu_3)s, %(top_menu_4)s, %(top_menu_5)s
+            %(top_menu_1)s, %(top_menu_2)s, %(top_menu_3)s, %(top_menu_4)s, %(top_menu_5)s, %(y_m)s
         );
         """
 

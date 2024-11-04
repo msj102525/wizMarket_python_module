@@ -138,6 +138,13 @@ class CommercialDistrictInsert(BaseModel):
     top_menu_4: str = None
     top_menu_5: str = None
 
+    y_m: Optional[date] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.y_m is None:
+            self.y_m = "2024-09-01"
+
     class Config:
         from_attributes = True
 
