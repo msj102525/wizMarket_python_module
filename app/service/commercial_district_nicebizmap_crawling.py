@@ -1346,7 +1346,7 @@ def search_commercial_district(
                         "top_menu_3": top_menu_3,
                         "top_menu_4": top_menu_4,
                         "top_menu_5": top_menu_5,
-                        "y_m" : "2024-09-30"
+                        "y_m": "2024-09-30",
                     }
 
                     # print(data)
@@ -1391,12 +1391,13 @@ def execute_task_in_thread(value):
         for future in futures:
             future.result()
 
+
 @time_execution
 def execute_parallel_tasks():
 
     # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-    values = [0, 1, 2, 3, 4, 5, 6, 8] # pc1
-    # values = [9, 10, 11, 12, 13, 14, 15, 16] # pc2
+    # values = [8, 9, 10, 11, 12, 13, 14, 15]  # pc1
+    values = [0, 1, 2, 3, 4, 5, 6, 7, 16]  # pc2
 
     with Pool(processes=len(values)) as pool:
         pool.starmap(execute_task_in_thread, [(value,) for value in values])
