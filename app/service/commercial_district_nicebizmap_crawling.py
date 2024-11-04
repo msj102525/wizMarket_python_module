@@ -1390,12 +1390,8 @@ def execute_task_in_thread(value):
         for future in futures:
             future.result()
 
-
+@time_execution
 def execute_parallel_tasks():
-    start_time = time.time()
-    print(
-        f"Total execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}"
-    )
 
     # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     values = [0, 1, 2, 3, 4, 5, 6, 8] # pc1
@@ -1410,7 +1406,7 @@ if __name__ == "__main__":
     print(f"상권분석 END")
 
     # 컴퓨터 종료 명령어 (운영체제에 따라 다름)
-    if os.name == "nt":  # Windows
-        os.system("shutdown /s /t 1")
-    else:  # Unix-based (Linux, macOS)
-        os.system("shutdown -h now")
+    # if os.name == "nt":  # Windows
+    #     os.system("shutdown /s /t 1")
+    # else:  # Unix-based (Linux, macOS)
+    #     os.system("shutdown -h now")
