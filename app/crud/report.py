@@ -2206,6 +2206,7 @@ def select_commercial_district_commercial_district_average_data(
                         WHERE SUB_DISTRICT_ID = %s
                         AND BIZ_DETAIL_CATEGORY_ID IN %s
                         AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                        -- AND Y_M = '2024-08-01'
                         """,
                         (sub_district_id, detail_categories),
                     )
