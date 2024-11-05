@@ -6,6 +6,7 @@ from tqdm import tqdm
 import time  # 내장 time 모듈을 가져옵니다.
 from typing import Any, Callable, List
 from app.crud.report import (
+    insert_new_report_table as crud_insert_new_report_table,
     select_local_store_info as crud_select_local_store_info,
     select_local_store_mp_detail_cateogry_id as crud_select_local_store_mp_detail_cateogry_id,
     select_local_store_top5_menus as crud_select_local_store_top5_menus,
@@ -39,6 +40,7 @@ from app.crud.report import (
     insert_or_update_commercial_district_j_score_weighted_average_data_batch as crud_insert_or_update_commercial_district_j_score_weighted_average_data_batch,
     select_commercial_district_commercial_district_average_data as crud_select_commercial_district_commercial_district_average_data,
     insert_or_update_commercial_district_commercial_district_average_data_batch as crud_insert_or_update_commercial_district_commercial_district_average_data_batch,
+    select_report_table,
 )
 from app.db.connect import get_db_connection
 from app.schemas.report import (
@@ -57,6 +59,7 @@ from app.schemas.report import (
     LocalStoreRisingBusinessNTop5SDTop3,
     LocalStoreSubdistrictId,
     LocalStoreTop5Menu,
+    Report,
 )
 
 
@@ -74,6 +77,40 @@ def time_execution(func):
     return wrapper
 
 
+#################################################################################
+
+
+# report 컬럼추가 정보 옮기기
+def insert_new_report_table_thread(
+    old_report_list: List[Report],
+    batch_size: int = 5000,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(old_report_list), batch_size):
+            batch = old_report_list[i : i + batch_size]
+            futures.append(executor.submit(crud_insert_new_report_table, batch))
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting old_report_table batches",
+        ):
+            future.result()
+
+
+@time_execution
+def migration_old_talbe_to_new_table_report():
+    old_report_list: List[Report] = select_report_table()
+
+    print(len(old_report_list))
+    print(old_report_list[0])
+    print(old_report_list[1])
+
+    insert_new_report_table_thread(old_report_list)
+
+
+#################################################################################
 # 매장 기본 정보 insert 또는 update 함수
 def insert_or_update_local_store_info_thread(
     store_info_list: List[LocalStoreBasicInfo], batch_size: int = 5000
@@ -1097,6 +1134,8 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 
 if __name__ == "__main__":
+    # migration_old_talbe_to_new_table_report() # 583.14 seconds O
+
     # insert_or_update_local_store_info()  # 54.09 seconds # O
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
     # insert_or_update_local_store_top5_menu()  # 54.82 seconds # O
@@ -1111,6 +1150,6 @@ if __name__ == "__main__":
     # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds # O
     # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
     # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds # O
-    # insert_or_update_commercial_district_commercial_district_average_data()  # 4909.20 seconds # O
+    insert_or_update_commercial_district_commercial_district_average_data()  # 4909.20 seconds # O
 
     print("END!!!!!!!!!!!!!!!")

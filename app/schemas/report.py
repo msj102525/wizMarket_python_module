@@ -8,19 +8,23 @@ class Report(BaseModel):
     city_name: Optional[str] = None  # VARCHAR(50)
     district_name: Optional[str] = None  # VARCHAR(50)
     sub_district_name: Optional[str] = None  # VARCHAR(50)
-    detail_category_name: str  # VARCHAR(100)
-    store_name: str  # VARCHAR(255)
+
+    detail_category_name: Optional[str]  # VARCHAR(100)
+    store_name: Optional[str]  # VARCHAR(255)
     road_name: Optional[str] = None  # VARCHAR(255)
     building_name: Optional[str] = None  # VARCHAR(255)
     floor_info: Optional[str] = None  # VARCHAR(10)
     latitude: Optional[float] = None  # DOUBLE
     longitude: Optional[float] = None  # DOUBLE
+
     detail_category_top1_ordered_menu: Optional[str] = None  # VARCHAR(50)
     detail_category_top2_ordered_menu: Optional[str] = None  # VARCHAR(50)
     detail_category_top3_ordered_menu: Optional[str] = None  # VARCHAR(50)
     detail_category_top4_ordered_menu: Optional[str] = None  # VARCHAR(50)
     detail_category_top5_ordered_menu: Optional[str] = None  # VARCHAR(50)
+
     loc_info_j_score_average: Optional[float] = None  # FLOAT
+
     population_total: Optional[int] = None  # INT
     population_male_percent: Optional[float] = None  # FLOAT
     population_female_percent: Optional[float] = None  # FLOAT
@@ -31,11 +35,16 @@ class Report(BaseModel):
     population_age_40s: Optional[int] = None  # INT
     population_age_50s: Optional[int] = None  # INT
     population_age_60_over: Optional[int] = None  # INT
-    loc_info_resident_k: Optional[int] = None  # INT
-    loc_info_work_pop_k: Optional[int] = None  # INT
-    loc_info_move_pop_k: Optional[int] = None  # INT
-    loc_info_shop_k: Optional[int] = None  # INT
+
+    loc_info_resident_k: Optional[float] = None  # INT
+    loc_info_work_pop_k: Optional[float] = None  # INT
+    loc_info_move_pop_k: Optional[float] = None  # INT
+    loc_info_shop_k: Optional[float] = None  # INT
     loc_info_income_won: Optional[int] = None  # INT
+    loc_info_average_sales_k: Optional[float] = None  # INT
+    loc_info_average_spend_k: Optional[float] = None  # INT
+    loc_info_house_k: Optional[float] = None  # INT
+    
     loc_info_resident_j_score: Optional[float] = None  # FLOAT
     loc_info_work_pop_j_score: Optional[float] = None  # FLOAT
     loc_info_move_pop_j_score: Optional[float] = None  # FLOAT
@@ -45,24 +54,42 @@ class Report(BaseModel):
     loc_info_average_spend_j_score: Optional[float] = None  # FLOAT
     loc_info_average_sales_j_score: Optional[float] = None  # FLOAT
     loc_info_house_j_score: Optional[float] = None  # FLOAT
+
     loc_info_resident: Optional[int] = None  # INT
     loc_info_work_pop: Optional[int] = None  # INT
     loc_info_resident_percent: Optional[float] = None  # FLOAT
     loc_info_work_pop_percent: Optional[float] = None  # FLOAT
+
     loc_info_move_pop: Optional[int] = None  # INT
     loc_info_city_move_pop: Optional[int] = None  # INT
+
     commercial_district_j_score_average: Optional[float] = None  # FLOAT
+
     commercial_district_food_business_count: Optional[int] = None  # INT
     commercial_district_healthcare_business_count: Optional[int] = None  # INT
     commercial_district_education_business_count: Optional[int] = None  # INT
     commercial_district_entertainment_business_count: Optional[int] = None  # INT
     commercial_district_lifestyle_business_count: Optional[int] = None  # INT
     commercial_district_retail_business_count: Optional[int] = None  # INT
+
+    commercial_district_national_market_size: Optional[int] = None  # Int
+    commercial_district_sub_district_market_size: Optional[int] = None  # Int
+
+    commercial_district_national_density_average: Optional[float] = None  # Int
+    commercial_district_sub_district_density_average: Optional[float] = None  # Int
+    commercial_district_national_average_sales: Optional[int] = None  # Int
+    commercial_district_sub_district_average_sales: Optional[int] = None  # Int
+    commercial_district_national_average_payment: Optional[int] = None  # Int
+    commercial_district_sub_district_average_payment: Optional[int] = None  # Int
+    commercial_district_national_usage_count: Optional[int] = None  # Int
+    commercial_district_sub_district_usage_count: Optional[int] = None  # Int
+
     commercial_district_market_size_j_score: Optional[float] = None  # FLOAT
     commercial_district_average_sales_j_score: Optional[float] = None  # FLOAT
     commercial_district_usage_count_j_score: Optional[float] = None  # FLOAT
     commercial_district_sub_district_density_j_score: Optional[float] = None  # FLOAT
     commercial_district_average_payment_j_score: Optional[float] = None  # FLOAT
+
     commercial_district_average_sales_percent_mon: Optional[float] = None  # FLOAT
     commercial_district_average_sales_percent_tue: Optional[float] = None  # FLOAT
     commercial_district_average_sales_percent_wed: Optional[float] = None  # FLOAT
@@ -77,11 +104,23 @@ class Report(BaseModel):
     commercial_district_average_sales_percent_18_21: Optional[float] = None  # FLOAT
     commercial_district_average_sales_percent_21_24: Optional[float] = None  # FLOAT
     # VARCHAR(100)
+    commercial_district_avg_client_per_m_20s: Optional[float] = None
+    commercial_district_avg_client_per_m_30s: Optional[float] = None
+    commercial_district_avg_client_per_m_40s: Optional[float] = None
+    commercial_district_avg_client_per_m_50s: Optional[float] = None
+    commercial_district_avg_client_per_m_60_over: Optional[float] = None
+    commercial_district_avg_client_per_f_20s: Optional[float] = None
+    commercial_district_avg_client_per_f_30s: Optional[float] = None
+    commercial_district_avg_client_per_f_40s: Optional[float] = None
+    commercial_district_avg_client_per_f_50s: Optional[float] = None
+    commercial_district_avg_client_per_f_60_over: Optional[float] = None
+
     commercial_district_detail_category_average_sales_top1_info: Optional[str] = None
     commercial_district_detail_category_average_sales_top2_info: Optional[str] = None
     commercial_district_detail_category_average_sales_top3_info: Optional[str] = None
     commercial_district_detail_category_average_sales_top4_info: Optional[str] = None
     commercial_district_detail_category_average_sales_top5_info: Optional[str] = None
+
     rising_business_national_rising_sales_top1_info: Optional[str] = None
     rising_business_national_rising_sales_top2_info: Optional[str] = None
     rising_business_national_rising_sales_top3_info: Optional[str] = None
@@ -194,7 +233,6 @@ class LocalStoreLocInfoData(BaseModel):
     loc_info_average_spend_k: Optional[float] = 0.0
     loc_info_average_house_k: Optional[float] = 0.0
     loc_info_data_ref_date: date
-    
 
     class Config:
         from_attributes = True
@@ -413,6 +451,8 @@ class LocalStoreRisingBusinessNTop5SDTop3(BaseModel):
 # 상권분석 읍/면/동 소분류 상권분석
 class LocalStoreCDCommercialDistrict(BaseModel):
     store_business_number: str
+    commercial_district_national_market_size_average: Optional[int]
+    commercial_district_sub_district_market_size_average: Optional[int]
     commercial_district_national_density_average: Optional[float]
     commercial_district_sub_district_density_average: Optional[float]
     commercial_district_national_average_sales: Optional[int]
@@ -424,6 +464,12 @@ class LocalStoreCDCommercialDistrict(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+        if self.commercial_district_national_market_size_average is None:
+            self.commercial_district_national_market_size_average = 0.0
+
+        if self.commercial_district_sub_district_market_size_average is None:
+            self.commercial_district_sub_district_market_size_average = 0.0
+
         if self.commercial_district_national_density_average is None:
             self.commercial_district_national_density_average = 0.0
 
