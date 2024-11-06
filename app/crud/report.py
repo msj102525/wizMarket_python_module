@@ -635,6 +635,7 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                         ls.STORE_BUSINESS_NUMBER,
                         c.CITY_NAME,
                         d.DISTRICT_NAME,
+                        ls.SUB_DISTRICT_ID,
                         sd.SUB_DISTRICT_NAME,
                         ls.SMALL_CATEGORY_NAME,
                         ls.STORE_NAME,
@@ -642,14 +643,21 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                         ls.BUILDING_NAME,
                         ls.FLOOR_INFO,
                         ls.LATITUDE,
-                        ls.LONGITUDE
+                        ls.LONGITUDE,
+                        BAC.BUSINESS_AREA_CATEGORY_ID,
+                        BDC.BIZ_DETAIL_CATEGORY_NAME
                     FROM
                         LOCAL_STORE ls
-                    JOIN CITY c ON c.CITY_ID = ls.CITY_ID
-                    JOIN DISTRICT d ON d.DISTRICT_ID = ls.DISTRICT_ID
-                    JOIN SUB_DISTRICT sd ON sd.SUB_DISTRICT_ID = ls.SUB_DISTRICT_ID
-                    AND LOCAL_YEAR = (SELECT MAX(LOCAL_YEAR) FROM LOCAL_STORE)
-                    AND LOCAL_QUARTER = (SELECT MAX(LOCAL_QUARTER) FROM LOCAL_STORE)
+                        LEFT JOIN CITY c ON c.CITY_ID = ls.CITY_ID
+                        LEFT JOIN DISTRICT d ON d.DISTRICT_ID = ls.DISTRICT_ID
+                        LEFT JOIN SUB_DISTRICT sd ON sd.SUB_DISTRICT_ID = ls.SUB_DISTRICT_ID
+                        LEFT JOIN BUSINESS_AREA_CATEGORY BAC ON BAC.DETAIL_CATEGORY_NAME = ls.SMALL_CATEGORY_NAME
+                        LEFT JOIN DETAIL_CATEGORY_MAPPING DCM ON DCM.BUSINESS_AREA_CATEGORY_ID = BAC.BUSINESS_AREA_CATEGORY_ID
+                        LEFT JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = DCM.REP_ID
+                        WHERE ls.LOCAL_YEAR = (SELECT MAX(LOCAL_YEAR) FROM LOCAL_STORE)
+                        AND ls.LOCAL_QUARTER = (SELECT MAX(LOCAL_QUARTER) FROM LOCAL_STORE)
+                        AND ls.SUB_DISTRICT_ID IS NOT NULL
+                        AND ls.IS_EXIST = 1
                     ;
                 """
 
@@ -675,6 +683,8 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                                 floor_info=row["FLOOR_INFO"],
                                 latitude=row["LATITUDE"],
                                 longitude=row["LONGITUDE"],
+                                business_area_category_id=row["BUSINESS_AREA_CATEGORY_ID"],
+                                biz_detail_category_rep_name=row["BIZ_DETAIL_CATEGORY_NAME"],
                             )
                         )
 
@@ -2288,8 +2298,9 @@ def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
                     INSERT INTO REPORT (
                         STORE_BUSINESS_NUMBER, CITY_NAME, DISTRICT_NAME, SUB_DISTRICT_NAME,
                         DETAIL_CATEGORY_NAME, STORE_NAME, ROAD_NAME, BUILDING_NAME,
-                        FLOOR_INFO, LATITUDE, LONGITUDE
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        FLOOR_INFO, LATITUDE, LONGITUDE,
+                        BUSINESS_AREA_CATEGORY_ID, BIZ_DETAIL_CATEGORY_REP_NAME                        
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         CITY_NAME = VALUES(CITY_NAME),
                         DISTRICT_NAME = VALUES(DISTRICT_NAME),
@@ -2300,7 +2311,9 @@ def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
                         BUILDING_NAME = VALUES(BUILDING_NAME),
                         FLOOR_INFO = VALUES(FLOOR_INFO),
                         LATITUDE = VALUES(LATITUDE),
-                        LONGITUDE = VALUES(LONGITUDE)
+                        LONGITUDE = VALUES(LONGITUDE),
+                        BUSINESS_AREA_CATEGORY_ID = VALUES(BUSINESS_AREA_CATEGORY_ID),
+                        BIZ_DETAIL_CATEGORY_REP_NAME = VALUES(BIZ_DETAIL_CATEGORY_REP_NAME)
                     ;
                 """
 
@@ -2317,6 +2330,8 @@ def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
                         store_info.floor_info,
                         store_info.latitude,
                         store_info.longitude,
+                        store_info.business_area_category_id,
+                        store_info.biz_detail_category_rep_name,
                     )
                     for store_info in batch
                 ]

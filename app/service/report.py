@@ -1134,9 +1134,9 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 
 if __name__ == "__main__":
-    migration_old_talbe_to_new_table_report() # 583.14 seconds O
+    # migration_old_talbe_to_new_table_report() # 583.14 seconds O
 
-    # insert_or_update_local_store_info()  # 54.09 seconds # O
+    insert_or_update_local_store_info()  # 54.09 seconds # O
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
     # insert_or_update_local_store_top5_menu()  # 54.82 seconds # O
     # insert_or_update_local_store_population_data()  # 49.84 seconds  # O
