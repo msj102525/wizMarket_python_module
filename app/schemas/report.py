@@ -44,7 +44,7 @@ class Report(BaseModel):
     loc_info_average_sales_k: Optional[float] = None  # INT
     loc_info_average_spend_k: Optional[float] = None  # INT
     loc_info_house_k: Optional[float] = None  # INT
-    
+
     loc_info_resident_j_score: Optional[float] = None  # FLOAT
     loc_info_work_pop_j_score: Optional[float] = None  # FLOAT
     loc_info_move_pop_j_score: Optional[float] = None  # FLOAT
@@ -74,7 +74,6 @@ class Report(BaseModel):
 
     commercial_district_national_market_size: Optional[int] = None  # Int
     commercial_district_sub_district_market_size: Optional[int] = None  # Int
-
     commercial_district_national_density_average: Optional[float] = None  # Int
     commercial_district_sub_district_density_average: Optional[float] = None  # Int
     commercial_district_national_average_sales: Optional[int] = None  # Int
@@ -164,6 +163,8 @@ class LocalStoreBasicInfo(BaseModel):
     floor_info: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    business_area_category_id: Optional[int] = None
+    biz_detail_category_rep_name: Optional[str] = None
 
     class Config:
         from_attributes = True

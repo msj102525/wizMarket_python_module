@@ -65,7 +65,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 city_name=row["CITY_NAME"],
                                 district_name=row["DISTRICT_NAME"],
                                 sub_district_name=row["SUB_DISTRICT_NAME"],
-
                                 detail_category_name=row["DETAIL_CATEGORY_NAME"],
                                 store_name=row["STORE_NAME"],
                                 road_name=row["ROAD_NAME"],
@@ -73,7 +72,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 floor_info=row["FLOOR_INFO"],
                                 latitude=row["LATITUDE"],
                                 longitude=row["LONGITUDE"],
-
                                 detail_category_top1_ordered_menu=row[
                                     "DETAIL_CATEGORY_TOP1_ORDERED_MENU"
                                 ],
@@ -89,11 +87,9 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 detail_category_top5_ordered_menu=row[
                                     "DETAIL_CATEGORY_TOP5_ORDERED_MENU"
                                 ],
-
                                 loc_info_j_score_average=row[
                                     "LOC_INFO_J_SCORE_AVERAGE"
                                 ],
-
                                 population_total=row["POPULATION_TOTAL"],
                                 population_male_percent=row["POPULATION_MALE_PERCENT"],
                                 population_female_percent=row[
@@ -106,16 +102,18 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 population_age_40s=row["POPULATION_AGE_40S"],
                                 population_age_50s=row["POPULATION_AGE_50S"],
                                 population_age_60_over=row["POPULATION_AGE_60_OVER"],
-
                                 loc_info_resident_k=row["LOC_INFO_RESIDENT_K"],
                                 loc_info_work_pop_k=row["LOC_INFO_WORK_POP_K"],
                                 loc_info_move_pop_k=row["LOC_INFO_MOVE_POP_K"],
                                 loc_info_shop_k=row["LOC_INFO_SHOP_K"],
                                 loc_info_income_won=row["LOC_INFO_INCOME_WON"],
-                                loc_info_average_sales_k=row["LOC_INFO_AVERAGE_SALES_K"],
-                                loc_info_average_spend_k=row["LOC_INFO_AVERAGE_SPEND_K"],
+                                loc_info_average_sales_k=row[
+                                    "LOC_INFO_AVERAGE_SALES_K"
+                                ],
+                                loc_info_average_spend_k=row[
+                                    "LOC_INFO_AVERAGE_SPEND_K"
+                                ],
                                 loc_info_house_k=row["LOC_INFO_HOUSE_K"],
-
                                 loc_info_resident_j_score=row[
                                     "LOC_INFO_RESIDENT_J_SCORE"
                                 ],
@@ -137,7 +135,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                     "LOC_INFO_AVERAGE_SALES_J_SCORE"
                                 ],
                                 loc_info_house_j_score=row["LOC_INFO_HOUSE_J_SCORE"],
-
                                 loc_info_resident=row["LOC_INFO_RESIDENT"],
                                 loc_info_work_pop=row["LOC_INFO_WORK_POP"],
                                 loc_info_resident_percent=row[
@@ -146,14 +143,11 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 loc_info_work_pop_percent=row[
                                     "LOC_INFO_WORK_POP_PERCENT"
                                 ],
-
                                 loc_info_move_pop=row["LOC_INFO_MOVE_POP"],
                                 loc_info_city_move_pop=row["LOC_INFO_CITY_MOVE_POP"],
-                                
                                 commercial_district_j_score_average=row[
                                     "COMMERCIAL_DISTRICT_J_SCORE_AVERAGE"
                                 ],
-
                                 commercial_district_food_business_count=row[
                                     "COMMERCIAL_DISTRICT_FOOD_BUSINESS_COUNT"
                                 ],
@@ -172,9 +166,12 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 commercial_district_retail_business_count=row[
                                     "COMMERCIAL_DISTRICT_RETAIL_BUSINESS_COUNT"
                                 ],
-
-                                # commercial_district_national_market_size=row['COMMERCIAL_DISTRICT_NATIONAL_MARKET_SIZE'],
-                                # commercial_district_sub_district_market_size=row['COMMERCIAL_DISTRICT_SUB_DISTRICT_MARKET_SIZE'],
+                                commercial_district_national_market_size=row[
+                                    "COMMERCIAL_DISTRICT_NATIONAL_MARKET_SIZE"
+                                ],
+                                commercial_district_sub_district_market_size=row[
+                                    "COMMERCIAL_DISTRICT_SUB_DISTRICT_MARKET_SIZE"
+                                ],
                                 commercial_district_national_density_average=row[
                                     "COMMERCIAL_DISTRICT_NATIONAL_DENSITY_AVERAGE"
                                 ],
@@ -199,7 +196,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 commercial_district_sub_district_usage_count=row[
                                     "COMMERCIAL_DISTRICT_SUB_DISTRICT_USAGE_COUNT"
                                 ],
-
                                 commercial_district_market_size_j_score=row[
                                     "COMMERCIAL_DISTRICT_MARKET_SIZE_J_SCORE"
                                 ],
@@ -215,7 +211,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 commercial_district_average_payment_j_score=row[
                                     "COMMERCIAL_DISTRICT_AVERAGE_PAYMENT_J_SCORE"
                                 ],
-
                                 commercial_district_average_sales_percent_mon=row[
                                     "COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_MON"
                                 ],
@@ -255,7 +250,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 commercial_district_average_sales_percent_21_24=row[
                                     "COMMERCIAL_DISTRICT_AVERAGE_SALES_PERCENT_21_24"
                                 ],
-                                
                                 commercial_district_avg_client_per_m_20s=row[
                                     "COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_20S"
                                 ],
@@ -286,7 +280,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 commercial_district_avg_client_per_f_60_over=row[
                                     "COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_60_OVER"
                                 ],
-
                                 commercial_district_detail_category_average_sales_top1_info=row[
                                     "COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP1_INFO"
                                 ],
@@ -302,7 +295,6 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 commercial_district_detail_category_average_sales_top5_info=row[
                                     "COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP5_INFO"
                                 ],
-
                                 rising_business_national_rising_sales_top1_info=row[
                                     "RISING_BUSINESS_NATIONAL_RISING_SALES_TOP1_INFO"
                                 ],
@@ -422,6 +414,8 @@ def insert_new_report_table(
                         COMMERCIAL_DISTRICT_LIFESTYLE_BUSINESS_COUNT,
                         COMMERCIAL_DISTRICT_RETAIL_BUSINESS_COUNT,
 
+                        COMMERCIAL_DISTRICT_NATIONAL_MARKET_SIZE,
+                        COMMERCIAL_DISTRICT_SUB_DISTRICT_MARKET_SIZE,
                         COMMERCIAL_DISTRICT_NATIONAL_DENSITY_AVERAGE,
                         COMMERCIAL_DISTRICT_SUB_DISTRICT_DENSITY_AVERAGE,
                         COMMERCIAL_DISTRICT_NATIONAL_AVERAGE_SALES,
@@ -455,12 +449,12 @@ def insert_new_report_table(
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_30S,
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_40S,
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_50S,
-                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_60_over,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_M_60_OVER,
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_20S,
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_30S,
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_40S,
                         COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_50S,
-                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_60_over,
+                        COMMERCIAL_DISTRICT_AVG_CLIENT_PER_F_60_OVER,
 
                         COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP1_INFO,
                         COMMERCIAL_DISTRICT_DETAIL_CATEGORY_AVERAGE_SALES_TOP2_INFO,
@@ -493,7 +487,7 @@ def insert_new_report_table(
                             %s, %s,
                             %s,
                             %s, %s, %s, %s, %s, %s,
-                            %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -509,7 +503,6 @@ def insert_new_report_table(
                         old_report.city_name,
                         old_report.district_name,
                         old_report.sub_district_name,
-
                         old_report.detail_category_name,
                         old_report.store_name,
                         old_report.road_name,
@@ -517,15 +510,12 @@ def insert_new_report_table(
                         old_report.floor_info,
                         old_report.latitude,
                         old_report.longitude,
-
                         old_report.detail_category_top1_ordered_menu,
                         old_report.detail_category_top2_ordered_menu,
                         old_report.detail_category_top3_ordered_menu,
                         old_report.detail_category_top4_ordered_menu,
                         old_report.detail_category_top5_ordered_menu,
-
                         old_report.loc_info_j_score_average,
-
                         old_report.population_total,
                         old_report.population_male_percent,
                         old_report.population_female_percent,
@@ -536,7 +526,6 @@ def insert_new_report_table(
                         old_report.population_age_40s,
                         old_report.population_age_50s,
                         old_report.population_age_60_over,
-
                         old_report.loc_info_resident_k,
                         old_report.loc_info_work_pop_k,
                         old_report.loc_info_move_pop_k,
@@ -545,7 +534,6 @@ def insert_new_report_table(
                         old_report.loc_info_average_sales_k,
                         old_report.loc_info_average_spend_k,
                         old_report.loc_info_house_k,
-
                         old_report.loc_info_resident_j_score,
                         old_report.loc_info_work_pop_j_score,
                         old_report.loc_info_move_pop_j_score,
@@ -555,25 +543,22 @@ def insert_new_report_table(
                         old_report.loc_info_average_spend_j_score,
                         old_report.loc_info_average_sales_j_score,
                         old_report.loc_info_house_j_score,
-
                         old_report.loc_info_resident,
                         old_report.loc_info_work_pop,
                         old_report.loc_info_resident_percent,
                         old_report.loc_info_work_pop_percent,
-
                         old_report.loc_info_move_pop,
                         old_report.loc_info_city_move_pop,
-
                         old_report.commercial_district_j_score_average,
-
                         old_report.commercial_district_food_business_count,
                         old_report.commercial_district_healthcare_business_count,
                         old_report.commercial_district_education_business_count,
                         old_report.commercial_district_entertainment_business_count,
                         old_report.commercial_district_lifestyle_business_count,
                         old_report.commercial_district_retail_business_count,
-
+                        old_report.commercial_district_national_market_size,
                         old_report.commercial_district_national_density_average,
+                        old_report.commercial_district_sub_district_market_size,
                         old_report.commercial_district_sub_district_density_average,
                         old_report.commercial_district_national_average_sales,
                         old_report.commercial_district_sub_district_average_sales,
@@ -581,13 +566,11 @@ def insert_new_report_table(
                         old_report.commercial_district_sub_district_average_payment,
                         old_report.commercial_district_national_usage_count,
                         old_report.commercial_district_sub_district_usage_count,
-
                         old_report.commercial_district_market_size_j_score,
                         old_report.commercial_district_average_sales_j_score,
                         old_report.commercial_district_usage_count_j_score,
                         old_report.commercial_district_sub_district_density_j_score,
                         old_report.commercial_district_average_payment_j_score,
-
                         old_report.commercial_district_average_sales_percent_mon,
                         old_report.commercial_district_average_sales_percent_tue,
                         old_report.commercial_district_average_sales_percent_wed,
@@ -601,7 +584,6 @@ def insert_new_report_table(
                         old_report.commercial_district_average_sales_percent_15_18,
                         old_report.commercial_district_average_sales_percent_18_21,
                         old_report.commercial_district_average_sales_percent_21_24,
-
                         old_report.commercial_district_avg_client_per_m_20s,
                         old_report.commercial_district_avg_client_per_m_30s,
                         old_report.commercial_district_avg_client_per_m_40s,
@@ -612,7 +594,6 @@ def insert_new_report_table(
                         old_report.commercial_district_avg_client_per_f_40s,
                         old_report.commercial_district_avg_client_per_f_50s,
                         old_report.commercial_district_avg_client_per_f_60_over,
-
                         old_report.commercial_district_detail_category_average_sales_top1_info,
                         old_report.commercial_district_detail_category_average_sales_top2_info,
                         old_report.commercial_district_detail_category_average_sales_top3_info,
@@ -620,7 +601,6 @@ def insert_new_report_table(
                         old_report.commercial_district_detail_category_average_sales_top5_info,
                         old_report.rising_business_national_rising_sales_top1_info,
                         old_report.rising_business_national_rising_sales_top2_info,
-
                         old_report.rising_business_national_rising_sales_top3_info,
                         old_report.rising_business_national_rising_sales_top4_info,
                         old_report.rising_business_national_rising_sales_top5_info,
