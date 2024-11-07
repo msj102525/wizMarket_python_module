@@ -762,7 +762,8 @@ def select_local_store_top5_menus(
                         Y_M
                     FROM COMMERCIAL_DISTRICT
                     WHERE BIZ_DETAIL_CATEGORY_ID IN (%s)
-                    AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    AND Y_M = '2024-08-01'
                     ;
                 """
                 # IN 절 파라미터 생성
@@ -1514,7 +1515,8 @@ def select_commercial_district_main_detail_category_count_data(
                 FROM
                     COMMERCIAL_DISTRICT
                 WHERE SUB_DISTRICT_ID IN (%s)
-                AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                AND Y_M = '2024-08-01'
                 GROUP BY SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID
                 ;
             """
@@ -1810,7 +1812,8 @@ def select_local_store_weekday_time_client_average_sales_data(
                         AVG_CLIENT_PER_F_60
                     FROM COMMERCIAL_DISTRICT
                     WHERE (SUB_DISTRICT_ID, BIZ_DETAIL_CATEGORY_ID) IN ({placeholders})
-                    AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    AND Y_M = '2024-08-01'
                     ;
                 """
 
@@ -1954,7 +1957,8 @@ def select_commercial_district_district_average_sales_data_batch(
                                 WHERE
                                     CD.DISTRICT_ID IN (SELECT DISTRICT_ID FROM SUB_DISTRICT WHERE SUB_DISTRICT_ID = %s)
                                     AND CD.BIZ_DETAIL_CATEGORY_ID IN ({})
-                                    AND CD.Y_M = (SELECT MAX(Y_M ) FROM COMMERCIAL_DISTRICT)
+                                    -- AND CD.Y_M = (SELECT MAX(Y_M ) FROM COMMERCIAL_DISTRICT)
+                                    AND Y_M = '2024-08-01'
                                 GROUP BY
                                     SD.SUB_DISTRICT_NAME
                             ),
@@ -2042,7 +2046,8 @@ def select_commercial_district_top5_top3_data_batch(
                     JOIN SUB_DISTRICT SD ON SD.SUB_DISTRICT_ID = RB.SUB_DISTRICT_ID
                     JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = RB.BIZ_DETAIL_CATEGORY_ID
                     WHERE GROWTH_RATE < 1000
-                    AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    AND Y_M = '2024-08-01'
                 )
                 SELECT
                     DISTRICT_NAME,
@@ -2072,7 +2077,8 @@ def select_commercial_district_top5_top3_data_batch(
                     JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = RB.BIZ_DETAIL_CATEGORY_ID
                     WHERE GROWTH_RATE < 1000
                     AND RB.SUB_DISTRICT_ID IN ({', '.join(['%s'] * len(sub_district_ids))})
-                    AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    AND Y_M = '2024-08-01'
                 )
                 SELECT
                     DISTRICT_NAME,
@@ -2195,8 +2201,8 @@ def select_commercial_district_commercial_district_average_data(
                             COMMERCIAL_DISTRICT
                         WHERE SUB_DISTRICT_ID = %s
                         AND BIZ_DETAIL_CATEGORY_ID IN %s
-                        AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
-                        -- AND Y_M = '2024-08-01'
+                        -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                        AND Y_M = '2024-08-01'
                         """,
                         (sub_district_id, detail_categories),
                     )
