@@ -1128,7 +1128,7 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 
 if __name__ == "__main__":
-    # migration_old_talbe_to_new_table_report() # 583.14 seconds O
+    migration_old_talbe_to_new_table_report() # 583.14 seconds O
 
     # insert_or_update_local_store_info()  # 54.09 seconds # O
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
@@ -1139,11 +1139,11 @@ if __name__ == "__main__":
     # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
     # insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds # O
     # insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
-    insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds # O AND Y_M = '2024-08-01'
-    insert_or_update_local_store_weekday_time_client_average_sales()  #  54.19 seconds # O AND Y_M = '2024-08-01'
+    # insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds # O AND Y_M = '2024-08-01'
+    # insert_or_update_local_store_weekday_time_client_average_sales()  #  54.19 seconds # O AND Y_M = '2024-08-01'
     # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds # O AND Y_M = '2024-08-01'
     # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O 
-    insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds # O AND Y_M = '2024-08-01'
-    insert_or_update_commercial_district_commercial_district_average_data()  # 3502.15 seconds # O AND Y_M = '2024-08-01'
+    # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds # O AND Y_M = '2024-08-01'
+    # insert_or_update_commercial_district_commercial_district_average_data()  # 3502.15 seconds # O AND Y_M = '2024-08-01'
 
     print("END!!!!!!!!!!!!!!!")

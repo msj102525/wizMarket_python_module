@@ -72,6 +72,8 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 floor_info=row["FLOOR_INFO"],
                                 latitude=row["LATITUDE"],
                                 longitude=row["LONGITUDE"],
+                                business_area_category_id=row["BUSINESS_AREA_CATEGORY_ID"],
+                                biz_detail_category_rep_name=row["BIZ_DETAIL_CATEGORY_REP_NAME"],
                                 detail_category_top1_ordered_menu=row[
                                     "DETAIL_CATEGORY_TOP1_ORDERED_MENU"
                                 ],
@@ -358,6 +360,8 @@ def insert_new_report_table(
                         FLOOR_INFO,
                         LATITUDE,
                         LONGITUDE,
+                        BUSINESS_AREA_CATEGORY_ID,
+                        BIZ_DETAIL_CATEGORY_REP_NAME,
 
                         DETAIL_CATEGORY_TOP1_ORDERED_MENU,
                         DETAIL_CATEGORY_TOP2_ORDERED_MENU,
@@ -477,7 +481,7 @@ def insert_new_report_table(
                         CREATED_AT,
                         UPDATED_AT
                     ) VALUES (%s, %s, %s, %s, 
-                            %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s,
                             %s,
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -510,6 +514,8 @@ def insert_new_report_table(
                         old_report.floor_info,
                         old_report.latitude,
                         old_report.longitude,
+                        old_report.business_area_category_id,
+                        old_report.biz_detail_category_rep_name,
                         old_report.detail_category_top1_ordered_menu,
                         old_report.detail_category_top2_ordered_menu,
                         old_report.detail_category_top3_ordered_menu,
