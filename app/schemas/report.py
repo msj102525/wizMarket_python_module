@@ -169,6 +169,8 @@ class LocalStoreBasicInfo(BaseModel):
     longitude: Optional[float] = None
     business_area_category_id: Optional[int] = None
     biz_detail_category_rep_name: Optional[str] = None
+    biz_main_categort_id: Optional[int] = None
+    biz_sub_categort_id: Optional[int] = None
 
     class Config:
         from_attributes = True
