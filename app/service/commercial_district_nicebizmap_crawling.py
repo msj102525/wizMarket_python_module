@@ -434,7 +434,6 @@ def get_sub_category(
 ):
     global global_driver
     setup_global_driver()
-    print(f"대분류 갯수!!!!!!!!!!: {main_category_count}")
     try:
         for main_category_idx in range(main_category_count):
             try:
