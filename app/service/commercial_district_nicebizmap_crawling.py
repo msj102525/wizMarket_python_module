@@ -150,7 +150,7 @@ def get_district_count(city_idx):
     setup_global_driver()
     try:
         # for city_idx in tqdm(range(city_count), desc="시/도 Progress"):
-        print(f"idx: {city_idx}")
+        # print(f"idx: {city_idx}")
 
         global_driver.get(BIZ_MAP_URL)
         wait = WebDriverWait(global_driver, 40)
@@ -196,66 +196,69 @@ def get_district_count(city_idx):
 
 
 # def get_sub_district_count(start_idx: int, end_idx: int):
-# def get_sub_district_count(city_idx, district_idx):  # 시/군/구 직접 전달 반복문 X
-def get_sub_district_count(city_idx, district_count):
+def get_sub_district_count(
+    city_idx, district_idx
+):  # 시/군/구 직접 전달 반복문 X 시/도 별 조회시 직접 시/군/구 idx 전달
+    # def get_sub_district_count(city_idx, district_count):
     global global_driver
     setup_global_driver()
     try:
-        for district_idx in tqdm(
-            range(4, district_count), f"{city_idx} : 시/군/구 Progress"
-        ):
-            print()
-            try:
-                global_driver.get(BIZ_MAP_URL)
-                wait = WebDriverWait(global_driver, 40)
-                global_driver.implicitly_wait(10)
+        # for district_idx in tqdm(
+        #     range(district_count), f"{city_idx} : 시/군/구 Progress"
+        # ):
 
-                time.sleep(1 + random.random())
+        print()
+        try:
+            global_driver.get(BIZ_MAP_URL)
+            wait = WebDriverWait(global_driver, 40)
+            global_driver.implicitly_wait(10)
 
-                # 분석 지역
-                click_element(
-                    global_driver,
-                    wait,
-                    By.XPATH,
-                    '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
-                )
+            time.sleep(1 + random.random())
 
-                time.sleep(1 + random.random())
+            # 분석 지역
+            click_element(
+                global_driver,
+                wait,
+                By.XPATH,
+                '//*[@id="pc_sheet01"]/div/div[2]/div[2]/ul/li[1]/a',
+            )
 
-                city_text = click_element(
-                    global_driver,
-                    wait,
-                    By.XPATH,
-                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
-                )
+            time.sleep(1 + random.random())
 
-                time.sleep(1 + random.random())
+            city_text = click_element(
+                global_driver,
+                wait,
+                By.XPATH,
+                f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{city_idx + 1}]/a',
+            )
 
-                district_text = click_element(
-                    global_driver,
-                    wait,
-                    By.XPATH,
-                    f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
-                )
+            time.sleep(1 + random.random())
 
-                sub_district_ul = wait.until(
-                    EC.presence_of_element_located(
-                        (
-                            By.XPATH,
-                            '//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul',
-                        )
+            district_text = click_element(
+                global_driver,
+                wait,
+                By.XPATH,
+                f'//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul/li[{district_idx + 1}]/a',
+            )
+
+            sub_district_ul = wait.until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        '//*[@id="basicReport"]/div[4]/div[2]/div[2]/div/div[2]/ul',
                     )
                 )
-                sub_district_ul_li = sub_district_ul.find_elements(By.TAG_NAME, "li")
+            )
+            sub_district_ul_li = sub_district_ul.find_elements(By.TAG_NAME, "li")
 
-                get_main_category(city_idx, district_idx, len(sub_district_ul_li))
-            except UnexpectedAlertPresentException:
-                handle_unexpected_alert(wait._driver)
-            except Exception as e:
-                print(f"Error processing district_idx {district_idx}: {str(e)}")
-                continue  # 반복문일때 활성화 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            finally:
-                pass
+            get_main_category(city_idx, district_idx, len(sub_district_ul_li))
+        except UnexpectedAlertPresentException:
+            handle_unexpected_alert(wait._driver)
+        except Exception as e:
+            print(f"Error processing district_idx {district_idx}: {str(e)}")
+            # continue  # 반복문일때 활성화 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        finally:
+            pass
     except Exception as e:
         print(
             f"Exception occurred get_sub_district_count(), district_idx {district_idx}: {e}."
@@ -269,7 +272,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
     global global_driver
     setup_global_driver()
     try:
-        for sub_district_idx in range(sub_district_count):
+        for sub_district_idx in tqdm(range(sub_district_count)):
             try:
                 global_driver.get(BIZ_MAP_URL)
                 wait = WebDriverWait(global_driver, 40)
@@ -325,7 +328,6 @@ def get_main_category(city_idx, district_idx, sub_district_count):
                     By.TAG_NAME, "li"
                 )
                 # print(f"대분류1 갯수 : {len(main_category_ul_1_li)}")
-
                 m_c_ul = 1
 
                 get_sub_category(
@@ -345,7 +347,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
             finally:
                 pass
 
-        for sub_district_idx in range(sub_district_count):
+        for sub_district_idx in tqdm(range(sub_district_count)):
             try:
                 print(f"idx: {district_idx}")
                 global_driver.get(BIZ_MAP_URL)
@@ -432,11 +434,9 @@ def get_sub_category(
 ):
     global global_driver
     setup_global_driver()
+    print(f"대분류 갯수!!!!!!!!!!: {main_category_count}")
     try:
-        for main_category_idx in tqdm(
-            range(main_category_count), f"동: {sub_district_idx}"
-        ):
-
+        for main_category_idx in range(main_category_count):
             try:
                 global_driver.get(BIZ_MAP_URL)
                 wait = WebDriverWait(global_driver, 40)
@@ -1383,10 +1383,12 @@ def search_commercial_district(
 
 
 def execute_task_in_thread(value):
-    with ThreadPoolExecutor(max_workers=18) as executor:
+    with ThreadPoolExecutor(max_workers=31) as executor:
         futures = [
-            # executor.submit(get_sub_district_count, 0, value),
-            executor.submit(get_district_count, value),
+            ############# 시/도 index 같이 넘겨주기#############
+            executor.submit(get_sub_district_count, 0, value),
+            ############# 시/도 index 같이 넘겨주기#############
+            # executor.submit(get_district_count, value),
         ]
         for future in futures:
             future.result()
@@ -1395,10 +1397,58 @@ def execute_task_in_thread(value):
 @time_execution
 def execute_parallel_tasks():
 
-    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-    # values = [8, 9, 10, 11, 12, 13, 14, 15]  # pc1
-    # values = [0, 1, 2, 3, 4, 5, 6, 7, 16]  # pc2
-    values = [0]  # 서울
+    values = []
+
+    # 시/도 기준으로 실행 /  전국 17 시/도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+
+    # 시/군/구 기준으로 실행
+    values = [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+    ]  # 서울특별시
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14, 15]  # 부산광역시
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8]  # 대구광역시
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # 인천광역시
+    # values = [0, 1, 2, 3, 4]  # 광주광역시
+    # values = [0, 1, 2, 3, 4]  # 대전광역시
+    # values = [0, 1, 2, 3, 4]  # 울산광역시
+    # values = [0]  # 세종특별자치시
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]  # 경기도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  # 충청북도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14]  # 충청남도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14, 15, 16, 17, 18, 19, 20, 21]  # 전라남도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14, 15, 16, 17, 18, 19, 20, 21]  # 경상북도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14, 15, 16, 17]  # 경상남도
+    # values = [0, 1]  # 제주측별자치도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13 ,14, 15, 16, 17]  # 강원특별자치도
+    # values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ,11, 12 ,13]  # 전북특별자치도
+
+    # 시/도 의 시/군/구 갯수 -1
+    values = values
 
     with Pool(processes=len(values)) as pool:
         pool.starmap(execute_task_in_thread, [(value,) for value in values])
