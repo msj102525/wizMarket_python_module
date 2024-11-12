@@ -16,6 +16,10 @@ class Report(BaseModel):
     floor_info: Optional[str] = None  # VARCHAR(10)
     latitude: Optional[float] = None  # DOUBLE
     longitude: Optional[float] = None  # DOUBLE
+    business_area_category_id: Optional[int] = None
+    biz_detail_category_rep_name: Optional[str] = None
+    biz_main_categort_id: Optional[int] = None
+    biz_sub_categort_id: Optional[int] = None
 
     detail_category_top1_ordered_menu: Optional[str] = None  # VARCHAR(50)
     detail_category_top2_ordered_menu: Optional[str] = None  # VARCHAR(50)
@@ -165,6 +169,8 @@ class LocalStoreBasicInfo(BaseModel):
     longitude: Optional[float] = None
     business_area_category_id: Optional[int] = None
     biz_detail_category_rep_name: Optional[str] = None
+    biz_main_categort_id: Optional[int] = None
+    biz_sub_categort_id: Optional[int] = None
 
     class Config:
         from_attributes = True

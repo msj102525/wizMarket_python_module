@@ -72,6 +72,8 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 floor_info=row["FLOOR_INFO"],
                                 latitude=row["LATITUDE"],
                                 longitude=row["LONGITUDE"],
+                                business_area_category_id=row["BUSINESS_AREA_CATEGORY_ID"],
+                                biz_detail_category_rep_name=row["BIZ_DETAIL_CATEGORY_REP_NAME"],
                                 detail_category_top1_ordered_menu=row[
                                     "DETAIL_CATEGORY_TOP1_ORDERED_MENU"
                                 ],
@@ -358,6 +360,8 @@ def insert_new_report_table(
                         FLOOR_INFO,
                         LATITUDE,
                         LONGITUDE,
+                        BUSINESS_AREA_CATEGORY_ID,
+                        BIZ_DETAIL_CATEGORY_REP_NAME,
 
                         DETAIL_CATEGORY_TOP1_ORDERED_MENU,
                         DETAIL_CATEGORY_TOP2_ORDERED_MENU,
@@ -477,7 +481,7 @@ def insert_new_report_table(
                         CREATED_AT,
                         UPDATED_AT
                     ) VALUES (%s, %s, %s, %s, 
-                            %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s,
                             %s,
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
@@ -510,6 +514,8 @@ def insert_new_report_table(
                         old_report.floor_info,
                         old_report.latitude,
                         old_report.longitude,
+                        old_report.business_area_category_id,
+                        old_report.biz_detail_category_rep_name,
                         old_report.detail_category_top1_ordered_menu,
                         old_report.detail_category_top2_ordered_menu,
                         old_report.detail_category_top3_ordered_menu,
@@ -645,7 +651,9 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                         ls.LATITUDE,
                         ls.LONGITUDE,
                         BAC.BUSINESS_AREA_CATEGORY_ID,
-                        BDC.BIZ_DETAIL_CATEGORY_NAME
+                        BDC.BIZ_DETAIL_CATEGORY_NAME,
+                        BMC.BIZ_MAIN_CATEGORY_ID,
+                        BSC.BIZ_SUB_CATEGORY_ID
                     FROM
                         LOCAL_STORE ls
                         LEFT JOIN CITY c ON c.CITY_ID = ls.CITY_ID
@@ -654,6 +662,8 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                         LEFT JOIN BUSINESS_AREA_CATEGORY BAC ON BAC.DETAIL_CATEGORY_NAME = ls.SMALL_CATEGORY_NAME
                         LEFT JOIN DETAIL_CATEGORY_MAPPING DCM ON DCM.BUSINESS_AREA_CATEGORY_ID = BAC.BUSINESS_AREA_CATEGORY_ID
                         LEFT JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = DCM.REP_ID
+                        LEFT JOIN BIZ_SUB_CATEGORY BSC ON BSC.BIZ_SUB_CATEGORY_ID = BDC.BIZ_SUB_CATEGORY_ID
+                        LEFT JOIN BIZ_MAIN_CATEGORY BMC ON BMC.BIZ_MAIN_CATEGORY_ID = BSC.BIZ_MAIN_CATEGORY_ID
                         WHERE ls.LOCAL_YEAR = (SELECT MAX(LOCAL_YEAR) FROM LOCAL_STORE)
                         AND ls.LOCAL_QUARTER = (SELECT MAX(LOCAL_QUARTER) FROM LOCAL_STORE)
                         AND ls.SUB_DISTRICT_ID IS NOT NULL
@@ -685,6 +695,8 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                                 longitude=row["LONGITUDE"],
                                 business_area_category_id=row["BUSINESS_AREA_CATEGORY_ID"],
                                 biz_detail_category_rep_name=row["BIZ_DETAIL_CATEGORY_NAME"],
+                                biz_main_categort_id=row["BIZ_MAIN_CATEGORY_ID"],
+                                biz_sub_categort_id=row["BIZ_SUB_CATEGORY_ID"],
                             )
                         )
 
@@ -762,7 +774,8 @@ def select_local_store_top5_menus(
                         Y_M
                     FROM COMMERCIAL_DISTRICT
                     WHERE BIZ_DETAIL_CATEGORY_ID IN (%s)
-                    AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    AND Y_M = '2024-08-01'
                     ;
                 """
                 # IN 절 파라미터 생성
@@ -1514,7 +1527,8 @@ def select_commercial_district_main_detail_category_count_data(
                 FROM
                     COMMERCIAL_DISTRICT
                 WHERE SUB_DISTRICT_ID IN (%s)
-                AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                AND Y_M = '2024-08-01'
                 GROUP BY SUB_DISTRICT_ID, BIZ_MAIN_CATEGORY_ID
                 ;
             """
@@ -1810,7 +1824,8 @@ def select_local_store_weekday_time_client_average_sales_data(
                         AVG_CLIENT_PER_F_60
                     FROM COMMERCIAL_DISTRICT
                     WHERE (SUB_DISTRICT_ID, BIZ_DETAIL_CATEGORY_ID) IN ({placeholders})
-                    AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                    AND Y_M = '2024-08-01'
                     ;
                 """
 
@@ -1954,7 +1969,8 @@ def select_commercial_district_district_average_sales_data_batch(
                                 WHERE
                                     CD.DISTRICT_ID IN (SELECT DISTRICT_ID FROM SUB_DISTRICT WHERE SUB_DISTRICT_ID = %s)
                                     AND CD.BIZ_DETAIL_CATEGORY_ID IN ({})
-                                    AND CD.Y_M = (SELECT MAX(Y_M ) FROM COMMERCIAL_DISTRICT)
+                                    -- AND CD.Y_M = (SELECT MAX(Y_M ) FROM COMMERCIAL_DISTRICT)
+                                    AND Y_M = '2024-08-01'
                                 GROUP BY
                                     SD.SUB_DISTRICT_NAME
                             ),
@@ -2042,7 +2058,8 @@ def select_commercial_district_top5_top3_data_batch(
                     JOIN SUB_DISTRICT SD ON SD.SUB_DISTRICT_ID = RB.SUB_DISTRICT_ID
                     JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = RB.BIZ_DETAIL_CATEGORY_ID
                     WHERE GROWTH_RATE < 1000
-                    AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    AND Y_M = '2024-08-01'
                 )
                 SELECT
                     DISTRICT_NAME,
@@ -2072,7 +2089,8 @@ def select_commercial_district_top5_top3_data_batch(
                     JOIN BIZ_DETAIL_CATEGORY BDC ON BDC.BIZ_DETAIL_CATEGORY_ID = RB.BIZ_DETAIL_CATEGORY_ID
                     WHERE GROWTH_RATE < 1000
                     AND RB.SUB_DISTRICT_ID IN ({', '.join(['%s'] * len(sub_district_ids))})
-                    AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    -- AND Y_M = (SELECT MAX(Y_M) FROM RISING_BUSINESS)
+                    AND Y_M = '2024-08-01'
                 )
                 SELECT
                     DISTRICT_NAME,
@@ -2195,8 +2213,8 @@ def select_commercial_district_commercial_district_average_data(
                             COMMERCIAL_DISTRICT
                         WHERE SUB_DISTRICT_ID = %s
                         AND BIZ_DETAIL_CATEGORY_ID IN %s
-                        AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
-                        -- AND Y_M = '2024-08-01'
+                        -- AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
+                        AND Y_M = '2024-08-01'
                         """,
                         (sub_district_id, detail_categories),
                     )
@@ -2299,8 +2317,9 @@ def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
                         STORE_BUSINESS_NUMBER, CITY_NAME, DISTRICT_NAME, SUB_DISTRICT_NAME,
                         DETAIL_CATEGORY_NAME, STORE_NAME, ROAD_NAME, BUILDING_NAME,
                         FLOOR_INFO, LATITUDE, LONGITUDE,
-                        BUSINESS_AREA_CATEGORY_ID, BIZ_DETAIL_CATEGORY_REP_NAME                        
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        BUSINESS_AREA_CATEGORY_ID, BIZ_DETAIL_CATEGORY_REP_NAME,
+                        BIZ_MAIN_CATEGORY_ID, BIZ_SUB_CATEGORY_ID                        
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         CITY_NAME = VALUES(CITY_NAME),
                         DISTRICT_NAME = VALUES(DISTRICT_NAME),
@@ -2313,7 +2332,9 @@ def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
                         LATITUDE = VALUES(LATITUDE),
                         LONGITUDE = VALUES(LONGITUDE),
                         BUSINESS_AREA_CATEGORY_ID = VALUES(BUSINESS_AREA_CATEGORY_ID),
-                        BIZ_DETAIL_CATEGORY_REP_NAME = VALUES(BIZ_DETAIL_CATEGORY_REP_NAME)
+                        BIZ_DETAIL_CATEGORY_REP_NAME = VALUES(BIZ_DETAIL_CATEGORY_REP_NAME),
+                        BIZ_MAIN_CATEGORY_ID = VALUES(BIZ_MAIN_CATEGORY_ID),
+                        BIZ_SUB_CATEGORY_ID = VALUES(BIZ_SUB_CATEGORY_ID)
                     ;
                 """
 
@@ -2332,6 +2353,8 @@ def insert_or_update_store_info_batch(batch: List[LocalStoreBasicInfo]) -> None:
                         store_info.longitude,
                         store_info.business_area_category_id,
                         store_info.biz_detail_category_rep_name,
+                        store_info.biz_main_categort_id,
+                        store_info.biz_sub_categort_id,
                     )
                     for store_info in batch
                 ]
