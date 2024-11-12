@@ -247,9 +247,15 @@ def insert_mz_population_statistics(data):
             insert_query = """
                 INSERT INTO population_info_mz_statistics (
                     city_id, district_id, sub_district_id, ref_date, 
-                    avg_val, med_val, std_val, max_val, min_val, j_score_rank, j_score_per, j_score, stat_level, created_at
+                    avg_val, med_val, std_val, max_val, min_val, 
+                    j_score_rank, j_score_per, j_score, 
+                    j_score_rank_non_outliers, j_score_per_non_outliers, j_score_non_outliers, 
+                    stat_level, created_at
                 ) VALUES (%(city_id)s, %(district_id)s, %(sub_district_id)s, %(ref_date)s, 
-                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, %(j_score_rank)s, %(j_score_per)s, %(j_score)s, %(stat_level)s, now())
+                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, 
+                        %(j_score_rank)s, %(j_score_per)s, %(j_score)s, 
+                        %(j_score_rank_non_outliers)s, %(j_score_per_non_outliers)s, %(j_score_non_outliers)s, 
+                        %(stat_level)s, now())
             """
 
             # 데이터 리스트를 반복하여 인서트

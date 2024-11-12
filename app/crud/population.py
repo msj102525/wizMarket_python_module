@@ -40,7 +40,7 @@ def insert_population_data(connection, population_data: Population):
                 age_80, age_81, age_82, age_83, age_84, age_85, age_86, age_87, age_88, age_89,
                 age_90, age_91, age_92, age_93, age_94, age_95, age_96, age_97, age_98, age_99,
                 age_100, age_101, age_102, age_103, age_104, age_105, age_106, age_107, age_108, age_109,
-                age_110_over, created_at, updated_at
+                age_110_over, created_at, updated_at, reference_id
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, 
                 %s, %s, %s, %s, %s, %s, 
@@ -55,7 +55,7 @@ def insert_population_data(connection, population_data: Population):
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
-                %s, NOW(), NOW()
+                %s, NOW(), NOW(), 2
             )
             """
 

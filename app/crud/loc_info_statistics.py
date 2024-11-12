@@ -8,6 +8,8 @@ from app.schemas.loc_info_statistics import (
     MzPopJScoreRank,
     LocInfoJScorePer,
     MzPopJScorePer,
+    LocInfoJScorePerNonOutLiers,
+    MzPopJScorePerNonOutLiers
 )
 import logging
 from pymysql import MySQLError
@@ -25,7 +27,7 @@ from app.db.connect import (
 import numpy as np
 
 
-# 1. 전국 지역 별 타겟 값 조회
+# 1. 전국 지역 별 타겟 입지 정보값 조회
 def select_nation_loc_info_by_region(
     connection, city_id:int, district_id:int, sub_district_id:int, ref_date:date, target_item:str
 ) -> List[NationLocInfoOutPut]:
@@ -82,7 +84,7 @@ def select_nation_loc_info_by_region(
     return results
 
 
-# 2. 시/도 지역 별 타겟 값 인구 조회
+# 2. 시/도 지역 별 타겟 값 입지 정보 조회
 def select_city_loc_info_by_region(
     connection, city_id:int, sub_district_id:int, ref_date:date, target_item:str
 ) -> List[CityLocInfoOutPut]:
@@ -138,7 +140,7 @@ def select_city_loc_info_by_region(
 
 
 
-# 3. 시/군/구 지역 별 타겟 인구 조회
+# 3. 시/군/구 지역 별 입지 정보 조회
 def select_district_loc_info_by_region(
     connection, district_id:int, sub_district_id:int, ref_date:date, target_item:str
 ) -> List[DistrictLocInfoOutPut]:
@@ -204,10 +206,14 @@ def insert_loc_info_statistics(connection, data):
             insert_query = """
                 INSERT INTO loc_info_statistics (
                     city_id, district_id, sub_district_id, reference_id, target_item,
-                    avg_val, med_val, std_val, max_val, min_val, j_score_rank, j_score_per, j_score_avg, 
+                    avg_val, med_val, std_val, max_val, min_val, 
+                    j_score_rank, j_score_per, j_score, 
+                    j_score_per_non_outliers, j_score_non_outliers, 
                     ref_date, stat_level, created_at
                 ) VALUES (%(city_id)s, %(district_id)s, %(sub_district_id)s, %(reference_id)s, %(target_item)s,
-                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, %(j_score_rank)s, %(j_score_per)s, %(j_score_avg)s,
+                        %(avg_val)s, %(med_val)s, %(std_val)s, %(max_val)s, %(min_val)s, 
+                        %(j_score_rank)s, %(j_score_per)s, %(j_score)s,
+                        %(j_score_per_non_outliers)s, %(j_score_non_outliers)s,
                         %(ref_date)s, %(stat_level)s, now())
             """
 
@@ -219,7 +225,7 @@ def insert_loc_info_statistics(connection, data):
                     # 딕셔너리로 변환하여 SQL 인서트
                     cursor.execute(insert_query, validated_record.dict())
                 except ValueError as e:
-                    logger(f"Data Validation Error: {e}")
+                    logger.error(f"Data Validation Error: {e}")
 
             # 커밋
             connection.commit()
@@ -235,7 +241,7 @@ def insert_loc_info_statistics(connection, data):
             cursor.close()
 
 
-# 5. 가중치 계산 위한 J-Score-rank 조회
+# 5. 가중치 계산 위한 입지 J-Score-rank 조회
 def select_loc_info_j_score_rank(
         connection, city_id:int, district_id:int, sub_district_id:int, target_item :str, ref_date: date
 ) -> List[LocInfoJScoreRank]:
@@ -349,14 +355,7 @@ def select_mz_j_score_rank(
 
 
 
-
-
-
-
-
-
-
-# 8. 가중치 계산 위한 J-Score-Per 조회
+# 7. 가중치 계산 위한 입지 J-Score-Per 조회
 def select_loc_info_j_score_per(
         connection, city_id:int, district_id:int, sub_district_id:int, target_item :str, ref_date: date
 ) -> List[LocInfoJScorePer]:
@@ -414,7 +413,7 @@ def select_loc_info_j_score_per(
     return results
 
 
-# 9. 가중치 계산 위한 mz 인구 j_score_per 값 조회
+# 8. 가중치 계산 위한 mz 인구 j_score_per 값 조회
 def select_mz_j_score_per(
     connection, city_id:int, district_id:int, sub_district_id:int, ref_date: date
 ) -> List[MzPopJScorePer]:
@@ -468,9 +467,131 @@ def select_mz_j_score_per(
     return results
 
 
+########### 이상치 제거
 
-# 7. 가중치 적용 평균 j_score_rank 인서트용
-def insert_loc_info_statistics_avg_j_score(data, ref_date):
+
+
+
+
+# 7. 가중치 계산 위한 입지 J-Score-Per 조회
+def select_loc_info_j_score_per_non_outliers(
+        connection, city_id:int, district_id:int, sub_district_id:int, target_item :str, ref_date: date
+) -> List[LocInfoJScorePerNonOutLiers]:
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+    logger = logging.getLogger(__name__)
+    results: List[LocInfoJScorePerNonOutLiers] = []
+
+    try:
+        if connection.open:
+            select_query = f"""
+                SELECT
+                    CITY_ID,
+                    DISTRICT_ID,
+                    SUB_DISTRICT_ID,
+                    TARGET_ITEM,  
+                    J_SCORE_PER_NON_OUTLIERS
+                FROM
+                    loc_info_statistics
+                WHERE 
+                    city_id = %s 
+                    AND district_id = %s 
+                    AND sub_district_id = %s 
+                    AND target_item = %s
+                    AND stat_level = '전국'
+                    AND REF_DATE = %s
+            """
+
+            cursor.execute(select_query, (city_id, district_id, sub_district_id, target_item, ref_date))
+            rows = cursor.fetchall()
+
+            for row in rows:
+                loc_info_by_region = LocInfoJScorePerNonOutLiers(
+                    city_id=row.get("CITY_ID"),
+                    district_id=row.get("DISTRICT_ID"),
+                    sub_district_id=row.get("SUB_DISTRICT_ID"),
+                    target_item=row.get("TARGET_ITEM"),
+                    j_score_per_non_outliers=row.get("J_SCORE_PER_NON_OUTLIERS")  
+                )
+                results.append(loc_info_by_region)
+
+            return results
+        
+    except pymysql.MySQLError as e:
+        logger.error(f"MySQL Error: {e}")
+        rollback(connection)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        rollback(connection)
+    finally:
+        if cursor:
+            close_cursor(cursor)
+
+
+    return results
+
+
+# 8. 가중치 계산 위한 mz 인구 j_score_per 값 조회
+def select_mz_j_score_per_non_outliers(
+    connection, city_id:int, district_id:int, sub_district_id:int, ref_date: date
+) -> List[MzPopJScorePerNonOutLiers]:
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+    logger = logging.getLogger(__name__)
+    results: List[MzPopJScorePerNonOutLiers] = []
+
+    try:
+        if connection.open:
+            select_query = f"""
+                SELECT
+                    CITY_ID,
+                    DISTRICT_ID,
+                    SUB_DISTRICT_ID,
+                    J_SCORE_PER_NON_OUTLIERS
+                FROM
+                    population_info_mz_statistics
+                WHERE 
+                    city_id = %s 
+                    AND district_id = %s 
+                    AND sub_district_id = %s 
+                    AND REF_DATE = %s
+            """
+
+            cursor.execute(select_query, (city_id, district_id, sub_district_id, ref_date))
+            rows = cursor.fetchall()
+
+            for row in rows:
+                loc_info_by_region = MzPopJScorePerNonOutLiers(
+                    city_id=row.get("CITY_ID"),
+                    district_id=row.get("DISTRICT_ID"),
+                    sub_district_id=row.get("SUB_DISTRICT_ID"),
+                    j_score_per_non_outliers=row.get("J_SCORE_PER_NON_OUTLIERS") 
+                )
+                results.append(loc_info_by_region)
+
+            return results
+        
+    except pymysql.MySQLError as e:
+        logger.error(f"MySQL Error: {e}")
+        rollback(connection)
+    except Exception as e:
+        logger.error(f"Unexpected Error: {e}")
+        rollback(connection)
+    finally:
+        if cursor:
+            close_cursor(cursor)
+
+
+    return results
+
+
+
+
+
+
+
+# 15. 가중치 적용 평균 j_score_rank 인서트용
+def insert_loc_info_statistics_avg_j_score(data):
     connection = get_db_connection()
     cursor = connection.cursor(pymysql.cursors.DictCursor)
     logger = logging.getLogger(__name__)
@@ -482,18 +603,30 @@ def insert_loc_info_statistics_avg_j_score(data, ref_date):
                 INSERT INTO loc_info_statistics (
                     city_id, district_id, sub_district_id, reference_id, target_item,
                     AVG_VAL, MED_VAL, STD_VAL, MAX_VAL, MIN_VAL,
-                    J_SCORE_RANK, J_SCORE_PER, J_SCORE_AVG, REF_DATE, STAT_LEVEL, CREATED_AT
+                    J_SCORE_RANK, J_SCORE_PER, J_SCORE, 
+                    J_SCORE_PER_NON_OUTLIERS, J_SCORE_NON_OUTLIERS,
+                    REF_DATE, STAT_LEVEL, CREATED_AT
                 ) VALUES (
                     %(city_id)s, %(district_id)s, %(sub_district_id)s, 3, 'j_score_avg',
                     NULL, NULL, NULL, NULL, NULL, 
-                    %(j_score_rank)s, %(j_score_per)s, %(j_score_avg)s, %(ref_date)s, '전국', now()
+                    %(j_score_rank)s, %(j_score_per)s, %(j_score)s, 
+                    %(j_score_per_non_outliers)s, %(j_score_non_outliers)s,
+                    %(ref_date)s, '전국', NOW()
                 )
             """
             # 데이터 리스트를 반복하여 인서트
             for record in data:
-                record["ref_date"] = ref_date  # 각 레코드에 ref_date 추가
+                # 특정 조건일 때 인서트 전 프린트
+                if record["city_id"] == 2 and record["district_id"] == 27 and record["sub_district_id"] == 316:
+                    print(f"Before Insert: {record}")
+
                 try:
                     cursor.execute(insert_query, record)  # 딕셔너리 형태로 인서트
+
+                    # 인서트 후 커서의 마지막 데이터 프린트
+                    if record["city_id"] == 2 and record["district_id"] == 27 and record["sub_district_id"] == 316:
+                        print(f"After Insert: {record}")
+                        
                 except ValueError as e:
                     logger.error(f"Data Validation Error: {e}")
 

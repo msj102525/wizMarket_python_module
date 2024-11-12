@@ -4,6 +4,7 @@ import logging
 from pymysql import MySQLError
 from typing import List, Optional
 import pymysql
+from datetime import date
 
 from app.db.connect import (
     get_db_connection,
@@ -16,7 +17,7 @@ from app.db.connect import (
 
 # 1. 지역 별 연령별 인구 조회
 def select_pop_age_by_region(
-        city_id:int, district_id:int, sub_district_id:int
+        city_id:int, district_id:int, sub_district_id:int, ref_date: date
 ) -> List[PopAgeByRegionOutPut]:
     connection = get_db_connection()
     cursor = connection.cursor(pymysql.cursors.DictCursor)
@@ -59,10 +60,10 @@ def select_pop_age_by_region(
                     age_109 + age_110_over) AS TOTAL_POPULATION_BY_GENDER
                 FROM
                     population
-                where city_id = %s and district_id = %s and sub_district_id = %s
+                where city_id = %s and district_id = %s and sub_district_id = %s and reference_date = %s
             """
 
-            cursor.execute(select_query, (city_id, district_id, sub_district_id))
+            cursor.execute(select_query, (city_id, district_id, sub_district_id, ref_date))
             temp_list = cursor.fetchall()
             
 

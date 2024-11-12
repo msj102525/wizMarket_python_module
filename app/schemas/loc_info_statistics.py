@@ -74,7 +74,9 @@ class InsertLocInfoStat(BaseModel):
     min_val: Optional[int]
     j_score_rank: Optional[float]
     j_score_per: Optional[float]
-    j_score_avg: Optional[float]
+    j_score: Optional[float]
+    j_score_per_non_outliers: Optional[float]
+    j_score_non_outliers: Optional[float]
     ref_date: date
     stat_level: str
 
@@ -124,7 +126,30 @@ class MzPopJScorePer(BaseModel):
         from_attributes = True
 
 
+######### 이상치 제거
 
+
+class LocInfoJScorePerNonOutLiers(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    target_item:str
+    j_score_per_non_outliers:Optional[float]
+
+    class Config:
+        from_attributes = True
+
+
+class MzPopJScorePerNonOutLiers(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    j_score_per_non_outliers :Optional[float]
+    
+    class Config:
+        from_attributes = True
+
+############################################
 
 class InsertLocInfoAvgRankJscore(BaseModel):
     city_id: int
@@ -135,18 +160,6 @@ class InsertLocInfoAvgRankJscore(BaseModel):
     class Config:
         from_attributes = True
 
-
-class SelectOldPerJscore(BaseModel):
-    city_id: Optional[int]
-    district_id: Optional[int]
-    sub_district_id: int
-    target_item: str
-    ref_date: date
-    stat_level: str
-    per_j_score: float
-
-    class Config:
-        from_attributes = True
 
 
 
