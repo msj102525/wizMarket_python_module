@@ -866,7 +866,7 @@ def select_local_store_weekday_time_client_average_sales_thread(
 
 
 @time_execution
-def insert_or_update_local_store_weekday_time_client_average_sales():
+def insert_or_update_commercial_district_weekday_time_client_average_sales():
     local_store_sub_district_rep_id_list = crud_select_local_store_sub_district_rep_id()
     local_store_weekday_time_client_average_sales_list = (
         select_local_store_weekday_time_client_average_sales_thread(
@@ -1132,15 +1132,16 @@ if __name__ == "__main__":
 
     # insert_or_update_local_store_info()  #  532.43 seconds # O
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
-    # insert_or_update_local_store_top5_menu()  # 54.82 seconds # O Y_M = '2024-08-01'
     # insert_or_update_local_store_population_data()  # 49.84 seconds  # O
     # insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
     # insert_or_update_local_store_loc_info_j_score_data()  #  63.58 seconds # O
     # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
-    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds # O
     # insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
+
+    # insert_or_update_local_store_top5_menu()  # 54.82 seconds # O Y_M = '2024-08-01'
+    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds # O
     # insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds # O AND Y_M = '2024-08-01'
-    # insert_or_update_local_store_weekday_time_client_average_sales()  #  54.19 seconds # O AND Y_M = '2024-08-01'
+    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  54.19 seconds # O AND Y_M = '2024-08-01'
     # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds # O AND Y_M = '2024-08-01'
     # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
     # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds # O AND Y_M = '2024-08-01'
