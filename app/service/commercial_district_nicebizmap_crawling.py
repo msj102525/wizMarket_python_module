@@ -1381,8 +1381,8 @@ def search_commercial_district(
         pass
 
 
-def execute_task_in_thread(value):
-    with ThreadPoolExecutor(max_workers=31) as executor:
+def execute_task_in_thread(value, max_workers):
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             ############# 시/도 index 같이 넘겨주기#############
             executor.submit(get_sub_district_count, 0, value),
@@ -1423,8 +1423,10 @@ def execute_parallel_tasks():
     # 시/도 의 시/군/구 갯수 -1
     values = values
 
-    with Pool(processes=len(values)) as pool:
-        pool.starmap(execute_task_in_thread, [(value,) for value in values])
+    max_workers = len(values)
+
+    with Pool(processes=max_workers) as pool:
+        pool.starmap(execute_task_in_thread, [(value, max_workers) for value in values])
 
 
 if __name__ == "__main__":
