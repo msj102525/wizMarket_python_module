@@ -30,7 +30,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def insert_by_date():
-    date_list = ['2024-08-01', '2024-10-01']
+    date_list = ['2024-10-01']
     target_list = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident']
 
     with ThreadPoolExecutor() as executor:
@@ -458,7 +458,7 @@ def prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank, adjusted_j_
 
 def execute_calculate_weighted_j_scores():
     target_items = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident']
-    ref_dates = ['2024-08-01', '2024-10-01']
+    ref_dates = ['2024-10-01']
 
     # 데이터베이스 연결 설정
     connection = get_db_connection()
@@ -518,5 +518,5 @@ def calculate_statistics(data):
 
 
 if __name__ == "__main__":  
-    # insert_by_date()
+    insert_by_date()
     execute_calculate_weighted_j_scores()

@@ -65,7 +65,7 @@ class LocationInfoReportOutput(BaseModel):
         from_attributes = True
 
 
-class InsertRecordSchema(BaseModel):
+class InsertLocInfo(BaseModel):
     city_id: int
     district_id: int
     sub_district_id: int
@@ -80,6 +80,7 @@ class InsertRecordSchema(BaseModel):
     spend: Optional[int] = None
     house: Optional[int] = None
     resident: Optional[int] = None
+    y_m: date
 
     class Config:
         from_attributes = True
@@ -107,3 +108,5 @@ class LocalInfoStatisticsResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
