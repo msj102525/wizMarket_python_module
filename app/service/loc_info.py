@@ -88,8 +88,12 @@ def crawl_keyword(region_data, connection):
         search_box.send_keys(region_data['keyword'])
         search_box.send_keys(Keys.RETURN)
 
-        last_keyword = region_data['keyword'].split()[-1]
         full_keyword = region_data['keyword']
+
+        if "도화2,3동" in full_keyword or "숭의1,3동" in full_keyword or "용현1,4동" in full_keyword:
+            full_keyword = full_keyword.replace(",", ".")
+
+        last_keyword = full_keyword.split()[-1]
         time.sleep(20)
         WebDriverWait(driver, 120).until(
             EC.presence_of_element_located((By.ID, "adrsDiv"))
@@ -130,36 +134,7 @@ def crawl_keyword(region_data, connection):
 
         except Exception as e:
             print(f"Timeout or error waiting for div element: {e}")
-        # print('1번')
-        # count = 0
-        # while True:
-        #         WebDriverWait(driver, 60).until(
-        #             EC.presence_of_element_located((By.XPATH, "//div[@class='cell']"))
-        #         )
-        #         print('2번')
-        #         div_elements = driver.find_elements(By.XPATH, "//div[@class='cell']")
-        #         div_content = None
-        #         for div_element in div_elements:
-        #             try:
-        #                 span_element = div_element.find_element(By.TAG_NAME, "span")
-        #                 print(span_element.text)
-        #                 if span_element.text == last_keyword:
-        #                     div_content = div_element.get_attribute("innerHTML")
-        #                     break
-        #             except Exception as e:
-        #                 print(f"Error accessing span element: {e}")
-        #         print('3번')
-        #         if div_content is None:
-        #             search_box.send_keys(Keys.RETURN)
-        #             time.sleep(0.5)
-        #             print('4번')
-        #             if count == 2:# 2번 반복 후 종료
-        #                 break
-        #             count += 1# 카운트 증가
-        #         else:
-        #             break
 
-        # div_content가 None인 경우 추가 조치 수행
         if div_content is None:
             try:
                 # 첫 번째 줌 아웃 버튼을 스크롤하여 클릭
@@ -331,7 +306,7 @@ def process_file_directly(all_region_list):
 def process_keywords_from_db():
     all_region_list = fetch_keywords_from_db()
     # new_region_list = all_region_list[2692:]
-    keyword_list = fetch_null_keywords_from_db()
+    keyword_list = fetch_test_keywords_from_db()
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리

@@ -81,10 +81,22 @@ def fetch_test_keywords_from_db():
     # 특정 테스트 데이터를 수동으로 설정
     test_keywords = [
         {
-            'city_id': 2,
-            'district_id': 41,
-            'sub_district_id': 629,
-            'keyword': '경기도 의왕시 청계동'
+            'city_id': 12,
+            'district_id': 160,
+            'sub_district_id': 2513,
+            'keyword': '인천광역시 미추홀구 도화2,3동'
+        },
+        {
+            'city_id': 12,
+            'district_id': 160,
+            'sub_district_id': 2515,
+            'keyword': '인천광역시 미추홀구 숭의1,3동'
+        },
+        {
+            'city_id': 12,
+            'district_id': 160,
+            'sub_district_id': 2518,
+            'keyword': '인천광역시 미추홀구 용현1,4동'
         },
     ]
     return test_keywords

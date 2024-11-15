@@ -110,3 +110,13 @@ class LocalInfoStatisticsResponse(BaseModel):
         from_attributes = True
 
 
+class LocInfoGenerateImageText(BaseModel):
+    road_name : str
+    loc_info_resident_j_score: float
+    loc_info_work_pop_j_score: float
+    loc_info_shop_j_score: float
+    loc_info_income_j_score: float
+    loc_info_mz_population_j_score: float
+    loc_info_average_spend_j_score: float
+    loc_info_average_sales_j_score: float
+    loc_info_house_j_score: float
