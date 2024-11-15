@@ -97,7 +97,7 @@ def generate_image(size="1024x1024"):
 # 허깅 페이스 디퓨저 모델 사용
 def generate_diffusion():
     prompt = "Korean-style fried chicken restaurant"
-    token = "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"
+    token = os.getenv("FACE_KEY")
 
     API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large"
     headers = {
@@ -134,7 +134,7 @@ def generate_diffusion():
 # 영화 포스터 모델
 def generate_movie_poster():
     prompt = "Korean-style fried chicken restaurant"
-    token = "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"
+    token = os.getenv("FACE_KEY")
 
     API_URL = "https://api-inference.huggingface.co/models/alex1105/movie-posters-v2"
     headers = {
