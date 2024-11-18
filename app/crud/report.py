@@ -1185,7 +1185,7 @@ def select_local_store_loc_info_j_score_data(
                 SELECT
                     SUB_DISTRICT_ID,
                     TARGET_ITEM,
-                    COALESCE(J_SCORE, 0.0) as J_SCORE
+                    COALESCE(J_SCORE_NON_OUTLIERS, 0.0) as J_SCORE
                 FROM LOC_INFO_STATISTICS
                 WHERE SUB_DISTRICT_ID IN (%s)
                 AND STAT_LEVEL = '전국'
@@ -1208,7 +1208,7 @@ def select_local_store_loc_info_j_score_data(
             pop_select_query = """
                 SELECT
                     SUB_DISTRICT_ID,
-                    COALESCE(J_SCORE, 0.0) as J_SCORE
+                    COALESCE(J_SCORE_NON_OUTLIERS, 0.0) as J_SCORE
                 FROM POPULATION_INFO_MZ_STATISTICS
                 WHERE SUB_DISTRICT_ID IN (%s)
                 AND STAT_LEVEL = '전국'
