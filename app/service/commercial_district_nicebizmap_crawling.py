@@ -1385,40 +1385,39 @@ def search_commercial_district(
         pass
 
 
-def calculate_optimal_workers():
-    # CPU 코어 수 확인
-    cpu_cores = cpu_count()
+# def calculate_optimal_workers():
+#     # CPU 코어 수 확인
+#     cpu_cores = cpu_count()
 
-    # 시스템 메모리 사용량 확인
-    memory = psutil.virtual_memory()
-    memory_usage_percent = memory.percent
+#     # 시스템 메모리 사용량 확인
+#     memory = psutil.virtual_memory()
+#     memory_usage_percent = memory.percent
 
-    # CPU 사용량 확인
-    cpu_usage_percent = psutil.cpu_percent()
+#     # CPU 사용량 확인
+#     cpu_usage_percent = psutil.cpu_percent()
 
-    # 기본 워커 수 설정
-    default_workers = cpu_cores * 2  # CPU 코어 수의 2배를 기본값으로
+#     # 기본 워커 수 설정
+#     default_workers = cpu_cores * 2  # CPU 코어 수의 2배를 기본값으로
 
-    # CPU와 메모리 사용량에 따른 조정
-    if cpu_usage_percent > 80 or memory_usage_percent > 80:
-        # 시스템 부하가 높을 경우 워커 수 감소
-        optimal_workers = max(1, default_workers // 2)
-    elif cpu_usage_percent < 30 and memory_usage_percent < 50:
-        # 시스템 여유가 많을 경우 워커 수 증가
-        optimal_workers = default_workers * 2
-    else:
-        optimal_workers = default_workers
+#     # CPU와 메모리 사용량에 따른 조정
+#     if cpu_usage_percent > 80 or memory_usage_percent > 80:
+#         # 시스템 부하가 높을 경우 워커 수 감소
+#         optimal_workers = max(1, default_workers // 2)
+#     elif cpu_usage_percent < 30 and memory_usage_percent < 50:
+#         # 시스템 여유가 많을 경우 워커 수 증가
+#         optimal_workers = default_workers * 2
+#     else:
+#         optimal_workers = default_workers
 
-    # 최소 1개, 최대 32개로 제한
-    return max(1, min(optimal_workers, 32))
+#     # 최소 1개, 최대 32개로 제한
+#     return max(1, min(optimal_workers, 32))
 
 
 def execute_task_in_thread(value, max_workers):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
-            ############# 시/도 index 같이 넘겨주기#############
-            executor.submit(get_sub_district_count, 0, value),
-            ############# 시/도 index 같이 넘겨주기#############
+            # executor.submit(get_sub_district_count, 시/도 Index, value),
+            # executor.submit(get_sub_district_count, 0, value),
             # executor.submit(get_district_count, value),
         ]
         for future in futures:
@@ -1455,10 +1454,12 @@ def execute_parallel_tasks():
     # 시/도 의 시/군/구 갯수 -1
     values = values
 
-    max_workers = calculate_optimal_workers()
-    print(f"PC CPU max_workers: {max_workers}")
+    # max_workers = calculate_optimal_workers()
+    # print(f"Optimal number of workers: {max_workers}")
+    # max_workers = min(max_workers, len(values))
+    # print(f"최종 max_workers: {max_workers}")
 
-    max_workers = min(max_workers, len(values))
+    max_workers = len(values)
     print(f"최종 max_workers: {max_workers}")
 
     with Pool(processes=max_workers) as pool:
