@@ -1067,7 +1067,7 @@ def insert_or_update_commercial_district_commercial_district_average_data_thread
         for future in tqdm(
             as_completed(futures),
             total=len(futures),
-            desc="Inserting cd jscore average batches",
+            desc="Inserting LocalStoreCommercialDistrictJscoreAverage batches",
         ):
             future.result()
 
@@ -1139,12 +1139,12 @@ if __name__ == "__main__":
     # insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
 
     # insert_or_update_local_store_top5_menu()  # 54.82 seconds 
-    insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds 
-    insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds 
-    insert_or_update_commercial_district_weekday_time_client_average_sales()  #  54.19 seconds
-    insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds
-    insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
-    insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
+    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds 
+    # insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds 
+    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  54.19 seconds
+    # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds
+    # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
+    # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
     insert_or_update_commercial_district_commercial_district_average_data()  # 3502.15 seconds 
 
     print("END!!!!!!!!!!!!!!!")
