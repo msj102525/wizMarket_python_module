@@ -85,6 +85,7 @@ def select_market_size_has_value() -> List[CommercialDistrictStatisticsBase]:
                 COMMERCIAL_DISTRICT
             WHERE
                 MARKET_SIZE > 0
+            AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
             ORDER BY BIZ_DETAIL_CATEGORY_ID
             ;
             """
@@ -141,6 +142,7 @@ def select_usage_count_has_value() -> List[CommercialDistrictStatisticsBase]:
                 COMMERCIAL_DISTRICT
             WHERE
                 USAGE_COUNT > 0
+            AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
             ORDER BY BIZ_DETAIL_CATEGORY_ID
             ;
             """
@@ -197,6 +199,7 @@ def select_average_sales_has_value() -> List[CommercialDistrictStatisticsBase]:
                 COMMERCIAL_DISTRICT
             WHERE
                 AVERAGE_SALES > 0
+            AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
             ORDER BY BIZ_DETAIL_CATEGORY_ID
             ;
             """
@@ -253,6 +256,7 @@ def select_sub_district_density_has_value() -> List[CommercialDistrictStatistics
                 COMMERCIAL_DISTRICT
             WHERE
                 SUB_DISTRICT_DENSITY > 0
+            AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
             ORDER BY BIZ_DETAIL_CATEGORY_ID
             ;
             """
@@ -309,6 +313,7 @@ def select_average_payment_has_value() -> List[CommercialDistrictStatisticsBase]
                 COMMERCIAL_DISTRICT
             WHERE
                 AVERAGE_PAYMENT > 0
+            AND Y_M = (SELECT MAX(Y_M) FROM COMMERCIAL_DISTRICT)
             ORDER BY BIZ_DETAIL_CATEGORY_ID
             ;
             """

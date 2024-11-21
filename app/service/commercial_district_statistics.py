@@ -512,11 +512,11 @@ def commercial_district_j_score_weighted_average_statistics():
 
 
 if __name__ == "__main__":
-    # commercial_district_market_size_statistics("2024-08-01")
-    # commercial_district_usage_count_statistics("2024-08-01")
-    # commercial_district_average_sales_statistics("2024-08-01")
-    # commercial_district_sub_district_density_statistics("2024-08-01")
-    # commercial_average_payment_statistics("2024-08-01")
+    # commercial_district_market_size_statistics("2024-09-30")
+    # commercial_district_usage_count_statistics("2024-09-30")
+    # commercial_district_average_sales_statistics("2024-09-30")
+    # commercial_district_sub_district_density_statistics("2024-09-30")
+    # commercial_average_payment_statistics("2024-09-30")
     # commercial_district_column_name_statistics("MARKET_SIZE", "2024-08-01")
-    commercial_district_j_score_weighted_average_statistics()
+    # commercial_district_j_score_weighted_average_statistics() # 51.21 seconds
     print("END!!!!!!!!")

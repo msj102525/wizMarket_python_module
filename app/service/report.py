@@ -575,7 +575,7 @@ def insert_or_update_commercial_district_j_score_weighted_average_data_thread(
     store_loc_info_cd_mc_count_data_list: List[
         LocalStoreCommercialDistrictJscoreAverage
     ],
-    batch_size: int = 5000,
+    batch_size: int = 1000,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -697,7 +697,7 @@ def select_commercial_district_main_detail_category_count_thread(
         for future in tqdm(
             as_completed(futures),
             total=len(futures),
-            desc="SELECT LOC_INFO_move_pop batches",
+            desc="crud_select_commercial_district_main_detail_category_count_data",
         ):
             try:
                 batch_result = future.result()
@@ -1130,21 +1130,21 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 if __name__ == "__main__":
     # migration_old_talbe_to_new_table_report() # 583.14 seconds O
 
-    insert_or_update_local_store_info()  #  532.43 seconds # O
-    insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
-    insert_or_update_local_store_population_data()  # 49.84 seconds  # O
-    insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
-    insert_or_update_local_store_loc_info_j_score_data()  #  63.58 seconds # O
-    insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
-    insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
+    # insert_or_update_local_store_info()  #  532.43 seconds # O
+    # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
+    # insert_or_update_local_store_population_data()  # 49.84 seconds  # O
+    # insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
+    # insert_or_update_local_store_loc_info_j_score_data()  #  63.58 seconds # O
+    # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
+    # insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
 
-    # insert_or_update_local_store_top5_menu()  # 54.82 seconds # O Y_M = '2024-08-01'
-    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds # O
-    # insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds # O AND Y_M = '2024-08-01'
-    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  54.19 seconds # O AND Y_M = '2024-08-01'
-    # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds # O AND Y_M = '2024-08-01'
-    # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
-    # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds # O AND Y_M = '2024-08-01'
-    # insert_or_update_commercial_district_commercial_district_average_data()  # 3502.15 seconds # O AND Y_M = '2024-08-01'
+    # insert_or_update_local_store_top5_menu()  # 54.82 seconds 
+    insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds 
+    insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds 
+    insert_or_update_commercial_district_weekday_time_client_average_sales()  #  54.19 seconds
+    insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds
+    insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
+    insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
+    insert_or_update_commercial_district_commercial_district_average_data()  # 3502.15 seconds 
 
     print("END!!!!!!!!!!!!!!!")
