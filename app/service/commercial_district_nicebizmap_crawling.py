@@ -1,11 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import random
 import re
 import time
 import os
 from typing import Dict, List
-
+import psutil
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -256,7 +256,7 @@ def get_sub_district_count(
             handle_unexpected_alert(wait._driver)
         except Exception as e:
             print(f"Error processing district_idx {district_idx}: {str(e)}")
-            # continue  # 반복문일때 활성화 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            # continue  # 시/도 기준으로 할 때 활성화
         finally:
             pass
     except Exception as e:
@@ -264,8 +264,12 @@ def get_sub_district_count(
             f"Exception occurred get_sub_district_count(), district_idx {district_idx}: {e}."
         )
         return None
+    # finally: # 시/도 기준으로 할 때 활성화
+    #     pass
     finally:
-        pass
+        if global_driver:
+            global_driver.quit()  # 메인 함수에서만 드라이버 종료
+            global_driver = None
 
 
 def get_main_category(city_idx, district_idx, sub_district_count):
@@ -1381,6 +1385,34 @@ def search_commercial_district(
         pass
 
 
+def calculate_optimal_workers():
+    # CPU 코어 수 확인
+    cpu_cores = cpu_count()
+
+    # 시스템 메모리 사용량 확인
+    memory = psutil.virtual_memory()
+    memory_usage_percent = memory.percent
+
+    # CPU 사용량 확인
+    cpu_usage_percent = psutil.cpu_percent()
+
+    # 기본 워커 수 설정
+    default_workers = cpu_cores * 2  # CPU 코어 수의 2배를 기본값으로
+
+    # CPU와 메모리 사용량에 따른 조정
+    if cpu_usage_percent > 80 or memory_usage_percent > 80:
+        # 시스템 부하가 높을 경우 워커 수 감소
+        optimal_workers = max(1, default_workers // 2)
+    elif cpu_usage_percent < 30 and memory_usage_percent < 50:
+        # 시스템 여유가 많을 경우 워커 수 증가
+        optimal_workers = default_workers * 2
+    else:
+        optimal_workers = default_workers
+
+    # 최소 1개, 최대 32개로 제한
+    return max(1, min(optimal_workers, 32))
+
+
 def execute_task_in_thread(value, max_workers):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
@@ -1423,7 +1455,11 @@ def execute_parallel_tasks():
     # 시/도 의 시/군/구 갯수 -1
     values = values
 
-    max_workers = len(values)
+    max_workers = calculate_optimal_workers()
+    print(f"PC CPU max_workers: {max_workers}")
+
+    max_workers = min(max_workers, len(values))
+    print(f"최종 max_workers: {max_workers}")
 
     with Pool(processes=max_workers) as pool:
         pool.starmap(execute_task_in_thread, [(value, max_workers) for value in values])
