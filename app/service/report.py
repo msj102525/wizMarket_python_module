@@ -1145,6 +1145,6 @@ if __name__ == "__main__":
     # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds
     # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
     # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
-    insert_or_update_commercial_district_commercial_district_average_data()  # 3502.15 seconds 
+    insert_or_update_commercial_district_commercial_district_average_data()  # 5549.02 seconds
 
     print("END!!!!!!!!!!!!!!!")
