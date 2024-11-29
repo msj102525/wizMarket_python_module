@@ -88,14 +88,14 @@ def click_element(driver, wait, by, value):
             text = element.text
             return text
         except Exception as e:
-            print(f"JavaScript click failed for element: {value}. Error: {str(e)}")
+            # print(f"JavaScript click failed for element: {value}. Error: {str(e)}")
             return False
     except UnexpectedAlertPresentException:
         handle_unexpected_alert(wait._driver)
     except Exception as e:
-        print(
-            f"Exception occurred click: {e} for element located by {by} with value {value}. Skipping to next element."
-        )
+        # print(
+        #     f"Exception occurred click: {e} for element located by {by} with value {value}. Skipping to next element."
+        # )
         return ""
 
 
@@ -110,10 +110,10 @@ def read_element(wait, by, value):
         NoSuchElementException,
         StaleElementReferenceException,
     ) as e:
-        print(f"Failed to read element: {by}, {value}. Error: {str(e)}")
+        # print(f"Failed to read element: {by}, {value}. Error: {str(e)}")
         return ""
     except Exception as e:
-        print(f"Unexpected error reading element: {by}, {value}. Error: {str(e)}")
+        # print(f"Unexpected error reading element: {by}, {value}. Error: {str(e)}")
         return ""
 
 
@@ -138,7 +138,7 @@ def handle_unexpected_alert(driver):
     try:
         alert = Alert(driver)
         alert_text = alert.text
-        print(f"Alert detected: {alert_text}")
+        # print(f"Alert detected: {alert_text}")
         alert.accept()
         return True
     except NoAlertPresentException:
@@ -187,7 +187,7 @@ def get_district_count(city_idx):
 
         get_sub_district_count(city_idx, len(district_ul_li))
     except Exception as e:
-        print(f"Exception occurred: {e}.")
+        # print(f"Exception occurred: {e}.")
         return None
     finally:
         if global_driver:
@@ -207,7 +207,6 @@ def get_sub_district_count(
         #     range(district_count), f"{city_idx} : 시/군/구 Progress"
         # ):
 
-        print()
         try:
             global_driver.get(BIZ_MAP_URL)
             wait = WebDriverWait(global_driver, 30)
@@ -260,9 +259,9 @@ def get_sub_district_count(
         finally:
             pass
     except Exception as e:
-        print(
-            f"Exception occurred get_sub_district_count(), district_idx {district_idx}: {e}."
-        )
+        # print(
+        #     f"Exception occurred get_sub_district_count(), district_idx {district_idx}: {e}."
+        # )
         return None
     # finally: # 시/도 기준으로 할 때 활성화
     #     pass
@@ -344,16 +343,15 @@ def get_main_category(city_idx, district_idx, sub_district_count):
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
             except Exception as e:
-                print(
-                    f"Exception occurred, 대분류1 반복 err, district_idx:  {district_idx}: {str(e)}"
-                )
+                # print(
+                #     f"Exception occurred, 대분류1 반복 err, district_idx:  {district_idx}: {str(e)}"
+                # )
                 continue
             finally:
                 pass
 
         for sub_district_idx in tqdm(range(sub_district_count)):
             try:
-                print(f"idx: {district_idx}")
                 global_driver.get(BIZ_MAP_URL)
                 wait = WebDriverWait(global_driver, 30)
                 global_driver.implicitly_wait(10)
@@ -418,16 +416,16 @@ def get_main_category(city_idx, district_idx, sub_district_count):
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
             except Exception as e:
-                print(
-                    f"Exception occurred: 대분류2 반복 오류, district_idx: {district_idx}: {str(e)}"
-                )
+                # print(
+                #     f"Exception occurred: 대분류2 반복 오류, district_idx: {district_idx}: {str(e)}"
+                # )
                 continue
             finally:
                 pass
     except Exception as e:
-        print(
-            f"Exception occurred get_main_category(), sub_district: {sub_district_idx} {e}."
-        )
+        # print(
+        #     f"Exception occurred get_main_category(), sub_district: {sub_district_idx} {e}."
+        # )
         return None
     finally:
         pass
@@ -511,16 +509,16 @@ def get_sub_category(
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
             except Exception as e:
-                print(
-                    f"Error processing, main_category_idx: {main_category_idx}: {str(e)}"
-                )
+                # print(
+                #     f"Error processing, main_category_idx: {main_category_idx}: {str(e)}"
+                # )
                 continue
             finally:
                 pass
     except Exception as e:
-        print(
-            f"Exception occurred, get_sub_category(), main_category_idx: {main_category_idx} {e}."
-        )
+        # print(
+        #     f"Exception occurred, get_sub_category(), main_category_idx: {main_category_idx} {e}."
+        # )
         return None
     finally:
         pass
@@ -620,14 +618,14 @@ def get_detail_category(
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
             except Exception as e:
-                print(f"Error processing sub_category_idx {sub_category_idx}: {str(e)}")
+                # print(f"Error processing sub_category_idx {sub_category_idx}: {str(e)}")
                 continue
             finally:
                 pass
     except Exception as e:
-        print(
-            f"Exception occurred get_detail_category(), sub_category_idx: {sub_category_idx} {e}."
-        )
+        # print(
+        #     f"Exception occurred get_detail_category(), sub_category_idx: {sub_category_idx} {e}."
+        # )
         return None
     finally:
         pass
@@ -649,9 +647,9 @@ def search_commercial_district(
 
             try:
                 start_time = time.time()
-                print(
-                    f"Execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}"
-                )
+                # print(
+                #     f"Execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}"
+                # )
 
                 global_driver.get(BIZ_MAP_URL)
                 wait = WebDriverWait(global_driver, 30)
@@ -724,13 +722,13 @@ def search_commercial_district(
                 try:
                     city_id = get_or_create_city_id(city_text)
                     if city_id is None:
-                        print("Failed to get or create main city ID")
+                        # print("Failed to get or create main city ID")
                         continue
                     # print(f"시/도: {city_text}, {city_id}")
 
                     district_id = get_or_create_district_id(city_id, district_text)
                     if district_id is None:
-                        print("Failed to get or create district ID")
+                        # print("Failed to get or create district ID")
                         continue
                     # print(f"시/군/구: {district_text}, {district_id}")
 
@@ -738,12 +736,12 @@ def search_commercial_district(
                         city_id, district_id, sub_district_text
                     )
                     if sub_district_id is None:
-                        print("Failed to get or create sub_district ID")
+                        # print("Failed to get or create sub_district ID")
                         continue
                     # print(f"읍/면/동: {sub_district_text}, {sub_district_id}")
 
                 except Exception as e:
-                    print(f"시 구 동 조회 오류 : {e}")
+                    # print(f"시 구 동 조회 오류 : {e}")
                     continue
 
                 ###########################
@@ -771,11 +769,11 @@ def search_commercial_district(
                     detail_category_id = get_or_create_biz_detail_category_id(
                         sub_category_id, detail_category_text
                     )
-                    if detail_category_id is None:
-                        print("Failed to get or create detail category ID")
+                    # if detail_category_id is None:
+                    #     print("Failed to get or create detail category ID")
 
                 except Exception as e:
-                    print(f"카테고리 조회 오류 : {e}")
+                    # print(f"카테고리 조회 오류 : {e}")
                     continue
 
                 if detail_category_text:
@@ -796,7 +794,7 @@ def search_commercial_district(
                             )
                         )
                     except TimeoutException:
-                        print(f"Element not found: //*[@id='report1'] 없거나 안뜸")
+                        # print(f"Element not found: //*[@id='report1'] 없거나 안뜸")
                         continue
 
                     wait = WebDriverWait(global_driver, 3)
@@ -1372,14 +1370,14 @@ def search_commercial_district(
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
             except Exception as e:
-                print(
-                    f"Error processing {city_text}, {district_text}, {sub_district_text}, {main_category_text}, {sub_category_text} : index {detail_category_idx}. {str(e)}"
-                )
+                # print(
+                #     f"Error processing {city_text}, {district_text}, {sub_district_text}, {main_category_text}, {sub_category_text} : index {detail_category_idx}. {str(e)}"
+                # )
                 continue
     except Exception as e:
-        print(
-            f"Exception occurred search_commercial_district(), detail_category_idx: {detail_category_idx} {e}."
-        )
+        # print(
+        #     f"Exception occurred search_commercial_district(), detail_category_idx: {detail_category_idx} {e}."
+        # )
         return None
     finally:
         pass
