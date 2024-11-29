@@ -1130,7 +1130,7 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 if __name__ == "__main__":
     # migration_old_talbe_to_new_table_report() # 583.14 seconds O
 
-    # insert_or_update_local_store_info()  #  532.43 seconds # O
+    insert_or_update_local_store_info()  #  532.43 seconds # O
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
     # insert_or_update_local_store_population_data()  # 49.84 seconds  # O
     # insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
@@ -1145,6 +1145,6 @@ if __name__ == "__main__":
     # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds
     # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
     # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
-    insert_or_update_commercial_district_commercial_district_average_data()  # 5549.02 seconds
+    # insert_or_update_commercial_district_commercial_district_average_data()  # 5549.02 seconds
 
     print("END!!!!!!!!!!!!!!!")
