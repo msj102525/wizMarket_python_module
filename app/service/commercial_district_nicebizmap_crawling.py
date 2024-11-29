@@ -153,7 +153,7 @@ def get_district_count(city_idx):
         # print(f"idx: {city_idx}")
 
         global_driver.get(BIZ_MAP_URL)
-        wait = WebDriverWait(global_driver, 40)
+        wait = WebDriverWait(global_driver, 30)
 
         time.sleep(1 + random.random())
 
@@ -210,7 +210,7 @@ def get_sub_district_count(
         print()
         try:
             global_driver.get(BIZ_MAP_URL)
-            wait = WebDriverWait(global_driver, 40)
+            wait = WebDriverWait(global_driver, 30)
             global_driver.implicitly_wait(10)
 
             time.sleep(1 + random.random())
@@ -279,7 +279,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
         for sub_district_idx in tqdm(range(sub_district_count)):
             try:
                 global_driver.get(BIZ_MAP_URL)
-                wait = WebDriverWait(global_driver, 40)
+                wait = WebDriverWait(global_driver, 30)
                 global_driver.implicitly_wait(10)
 
                 # 분석 지역
@@ -355,7 +355,7 @@ def get_main_category(city_idx, district_idx, sub_district_count):
             try:
                 print(f"idx: {district_idx}")
                 global_driver.get(BIZ_MAP_URL)
-                wait = WebDriverWait(global_driver, 40)
+                wait = WebDriverWait(global_driver, 30)
                 global_driver.implicitly_wait(10)
 
                 # 분석 지역
@@ -442,7 +442,7 @@ def get_sub_category(
         for main_category_idx in range(main_category_count):
             try:
                 global_driver.get(BIZ_MAP_URL)
-                wait = WebDriverWait(global_driver, 40)
+                wait = WebDriverWait(global_driver, 30)
                 global_driver.implicitly_wait(10)
 
                 # 분석 지역
@@ -541,7 +541,7 @@ def get_detail_category(
 
             try:
                 global_driver.get(BIZ_MAP_URL)
-                wait = WebDriverWait(global_driver, 40)
+                wait = WebDriverWait(global_driver, 30)
                 global_driver.implicitly_wait(10)
 
                 # 분석 지역
@@ -654,7 +654,7 @@ def search_commercial_district(
                 )
 
                 global_driver.get(BIZ_MAP_URL)
-                wait = WebDriverWait(global_driver, 40)
+                wait = WebDriverWait(global_driver, 30)
                 global_driver.implicitly_wait(10)
 
                 # 분석 지역
