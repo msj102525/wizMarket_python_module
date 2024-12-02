@@ -26,7 +26,7 @@ def insert_rising_business(data_list: List[RisingBusinessInsert]):
             cursor = connection.cursor()
 
             insert_query = """
-            INSERT INTO RISING_BUSINESS (city_id, district_id, sub_district_id, biz_main_category_id, biz_sub_category_id, biz_detail_category_id, growth_rate, sub_district_rank)
+            INSERT INTO RISING_BUSINESS (city_id, district_id, sub_district_id, biz_main_category_id, biz_sub_category_id, biz_detail_category_id, growth_rate, sub_district_rank, y_m)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
             """
 

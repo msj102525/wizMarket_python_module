@@ -44,8 +44,10 @@ def time_execution(func):
 
     return wrapper
 
+
 # Global WebDriver instance
 global_driver = None
+
 
 def setup_global_driver():
     global global_driver
@@ -396,6 +398,7 @@ def search_rising_businesses_top5(
                         biz_detail_category_id=3,
                         growth_rate=0.0,
                         sub_district_rank=0,
+                        y_m="2024-09-30",
                     )
                 )
             except Exception as e:

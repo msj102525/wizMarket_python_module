@@ -35,6 +35,13 @@ class RisingBusinessInsert(BaseModel):
     growth_rate: float
     sub_district_rank: int
 
+    y_m: Optional[date] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.y_m is None:
+            self.y_m = "2024-09-30"
+
     class Config:
         from_attributes = True
 
