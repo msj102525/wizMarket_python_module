@@ -280,7 +280,7 @@ def search_rising_businesses_top5(
 
     try:
         for sub_district_idx in range(sub_district_count):
-            start_time = time.time()
+            # start_time = time.time()
             global_driver.get(NICE_BIZ_MAP_URL)
             wait = WebDriverWait(global_driver, 40)
             time.sleep(2)
@@ -404,12 +404,12 @@ def search_rising_businesses_top5(
             except Exception as e:
                 continue
 
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            print(f"Time taken: {elapsed_time} seconds")
-            print(
-                f"시/도: {city_text}, 시/군/구: {district_text}, 읍/면/동: {sub_district_text}"
-            )
+            # end_time = time.time()
+            # elapsed_time = end_time - start_time
+            # print(f"Time taken: {elapsed_time} seconds")
+            # print(
+            #     f"시/도: {city_text}, 시/군/구: {district_text}, 읍/면/동: {sub_district_text}"
+            # )
 
         insert_rising_business(data_list)
 
