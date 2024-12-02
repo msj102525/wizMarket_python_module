@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import os
-
+from webdriver_manager.chrome import ChromeDriverManager
 from tqdm import tqdm
 from app.crud.biz_detail_category import (
     get_biz_categories_id_by_biz_detail_category_name,
@@ -31,28 +31,35 @@ from selenium.webdriver.common.alert import Alert
 NICE_BIZ_MAP_URL = "https://m.nicebizmap.co.kr/analysis/analysisFree"
 
 
-def setup_driver():
-    driver_path = os.path.join(
-        os.path.dirname(__file__), "../", "drivers", "chromedriver.exe"
-    )
+# 시간 재는 함수
+def time_execution(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(
+            f"Execution time for {func.__name__}: {end_time - start_time:.2f} seconds"
+        )
+        return result
 
-    options = Options()
-    options.add_argument("--start-fullscreen")
+    return wrapper
 
-    prefs = {
-        "download.default_directory": os.path.join(
-            os.path.dirname(__file__), "downloads"
-        ),
-        "download.prompt_for_download": False,
-        "download.directory_upgrade": True,
-        "safebrowsing.enabled": True,
-    }
-    options.add_experimental_option("prefs", prefs)
+# Global WebDriver instance
+global_driver = None
 
-    service = Service(driver_path)
-    driver = webdriver.Chrome(service=service, options=options)
+def setup_global_driver():
+    global global_driver
+    if global_driver is None:
+        options = Options()
+        options.add_argument("--start-fullscreen")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
-    return driver
+        # WebDriver Manager를 이용해 ChromeDriver 자동 관리
+        service = Service(ChromeDriverManager().install())
+        global_driver = webdriver.Chrome(service=service, options=options)
+
+    return global_driver
 
 
 def click_element(wait, by, value):
@@ -63,9 +70,9 @@ def click_element(wait, by, value):
         time.sleep(2)
         return text
     except TimeoutException:
-        print(
-            f"TimeoutException occurred for element located by {by} with value {value}. Skipping to next element."
-        )
+        # print(
+        #     f"TimeoutException occurred for element located by {by} with value {value}. Skipping to next element."
+        # )
         return None
 
 
@@ -76,9 +83,9 @@ def read_element(wait, by, value):
         time.sleep(0.3)
         return text
     except TimeoutException:
-        print(
-            f"TimeoutException occurred for element located by {by} with value {value}. Skipping to next element."
-        )
+        # print(
+        #     f"TimeoutException occurred for element located by {by} with value {value}. Skipping to next element."
+        # )
         return None
 
 
@@ -93,7 +100,7 @@ def handle_unexpected_alert(driver):
     try:
         alert = Alert(driver)
         alert_text = alert.text
-        print(f"Alert detected: {alert_text}")
+        # print(f"Alert detected: {alert_text}")
         alert.accept()
         return True
     except NoAlertPresentException:
@@ -101,11 +108,12 @@ def handle_unexpected_alert(driver):
 
 
 def get_city_count():
-    driver = setup_driver()
+    global global_driver
+    setup_global_driver()
     try:
-        driver.get(NICE_BIZ_MAP_URL)
-        wait = WebDriverWait(driver, 40)
-        driver.implicitly_wait(10)
+        global_driver.get(NICE_BIZ_MAP_URL)
+        wait = WebDriverWait(global_driver, 40)
+        global_driver.implicitly_wait(10)
 
         time.sleep(2)
 
@@ -124,29 +132,29 @@ def get_city_count():
             )
         )
         city_ul_li = city_ul.find_elements(By.TAG_NAME, "li")
-        print(f"시/도 갯수: {len(city_ul_li)}")
+        # print(f"시/도 갯수: {len(city_ul_li)}")
 
         get_district_count(len(city_ul_li))
     except Exception as e:
-        print(f"Exception occurred: {e}.")
+        # print(f"Exception occurred: {e}.")
         return None
     finally:
         try:
-            if driver:
-                driver.quit()
+            if global_driver:
+                global_driver.quit()
         except Exception as quit_error:
             print(f"Error closing driver: {str(quit_error)}")
 
 
 # def get_district_count(city_count):
 def get_district_count(start_idx: int, end_idx: int):
-    driver = setup_driver()
+    global global_driver
+    setup_global_driver()
     try:
         for city_idx in tqdm(range(start_idx, end_idx), desc="시/도 Progress"):
             try:
-                print(f"idx: {city_idx}")
-                driver.get(NICE_BIZ_MAP_URL)
-                wait = WebDriverWait(driver, 40)
+                global_driver.get(NICE_BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
                 click_element(wait, By.XPATH, "/html/body/div[5]/div[2]/ul/li[5]/a")
 
                 time.sleep(2)
@@ -171,31 +179,31 @@ def get_district_count(start_idx: int, end_idx: int):
                     )
                 )
                 district_ul_li = district_ul.find_elements(By.TAG_NAME, "li")
-                print(f"구 갯수: {len(district_ul_li)}")
+                # print(f"구 갯수: {len(district_ul_li)}")
 
                 get_sub_district_count(city_idx, len(district_ul_li), city_text)
 
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
             except Exception as e:
-                print(f"Error processing city index {city_idx}: {str(e)}")
+                # print(f"Error processing city index {city_idx}: {str(e)}")
                 continue
     finally:
         try:
-            if driver:
-                driver.quit()
+            if global_driver:
+                global_driver.quit()
         except Exception as quit_error:
             print(f"Error closing driver: {str(quit_error)}")
 
 
 def get_sub_district_count(city_idx: int, district_count: int, city_text_ck: str):
-    driver = setup_driver()
+    global global_driver
+    setup_global_driver()
     try:
         for district_idx in tqdm(range(district_count), f"{city_text_ck} : Progress"):
             try:
-                print(f"idx: {district_idx}")
-                driver.get(NICE_BIZ_MAP_URL)
-                wait = WebDriverWait(driver, 40)
+                global_driver.get(NICE_BIZ_MAP_URL)
+                wait = WebDriverWait(global_driver, 40)
                 click_element(wait, By.XPATH, "/html/body/div[5]/div[2]/ul/li[5]/a")
 
                 time.sleep(2)
@@ -224,7 +232,7 @@ def get_sub_district_count(city_idx: int, district_count: int, city_text_ck: str
                 )
 
                 district_ul_li = district_ul.find_elements(By.TAG_NAME, "li")
-                print(f"구 갯수: {len(district_ul_li)}")
+                # print(f"구 갯수: {len(district_ul_li)}")
 
                 district_text = click_element(
                     wait,
@@ -241,9 +249,7 @@ def get_sub_district_count(city_idx: int, district_count: int, city_text_ck: str
                     )
                 )
                 sub_district_ul_li = sub_district_ul.find_elements(By.TAG_NAME, "li")
-                print(f"동 갯수: {len(sub_district_ul_li)}")
-
-                print(f"시/도: {city_text}, 시/군/구: {district_text}")
+                # print(f"동 갯수: {len(sub_district_ul_li)}")
 
                 search_rising_businesses_top5(
                     city_idx, district_idx, len(sub_district_ul_li)
@@ -255,24 +261,26 @@ def get_sub_district_count(city_idx: int, district_count: int, city_text_ck: str
                 continue
 
     finally:
-        try:
-            if driver:
-                driver.quit()
-        except Exception as quit_error:
-            print(f"Error closing driver: {str(quit_error)}")
+        pass
+        # try:
+        #     if global_driver:
+        #         global_driver.quit()
+        # except Exception as quit_error:
+        #     print(f"Error closing driver: {str(quit_error)}")
 
 
 def search_rising_businesses_top5(
     city_idx: int, district_idx: int, sub_district_count: int
 ):
-    driver = setup_driver()
+    global global_driver
+    setup_global_driver()
     data_list: List[RisingBusiness] = []
 
     try:
         for sub_district_idx in range(sub_district_count):
             start_time = time.time()
-            driver.get(NICE_BIZ_MAP_URL)
-            wait = WebDriverWait(driver, 40)
+            global_driver.get(NICE_BIZ_MAP_URL)
+            wait = WebDriverWait(global_driver, 40)
             time.sleep(2)
 
             click_element(wait, By.XPATH, "/html/body/div[5]/div[2]/ul/li[5]/a")
@@ -343,7 +351,7 @@ def search_rising_businesses_top5(
                                 )
 
                                 if category_result is None:
-                                    print("Failed to get or create detail category ID")
+                                    # print("Failed to get or create detail category ID")
                                     continue
 
                                 growth_rate = convert_to_int_float(li_text[2])
@@ -358,17 +366,12 @@ def search_rising_businesses_top5(
                                     growth_rate=growth_rate,
                                     sub_district_rank=convert_to_int_float(li_text[0]),
                                 )
-                                print(
-                                    f"읍/면/동: {sub_district_text}, 뜨는 업종 data:{data}"
-                                )
 
                                 data_list.append(data)
 
                             except Exception as e:
-                                print(f"카테고리 조회 오류 : {e}")
                                 continue
                 else:
-                    print(f"읍/면/동: {sub_district_text} 데이터 없음")
                     data_list.append(
                         RisingBusinessInsert(
                             city_id=city_id,
@@ -383,7 +386,6 @@ def search_rising_businesses_top5(
                     )
             except UnexpectedAlertPresentException:
                 handle_unexpected_alert(wait._driver)
-                print(f"읍/면/동: {sub_district_text} 데이터 없음")
                 data_list.append(
                     RisingBusinessInsert(
                         city_id=city_id,
@@ -397,7 +399,6 @@ def search_rising_businesses_top5(
                     )
                 )
             except Exception as e:
-                print(f"Loading Error : {str(e)}")
                 continue
 
             end_time = time.time()
@@ -412,16 +413,12 @@ def search_rising_businesses_top5(
     except Exception as e:
         print(f"Failed to fetch data from {NICE_BIZ_MAP_URL}: {str(e)}")
     finally:
-        driver.quit()
+        pass
 
 
 def execute_task_in_thread(start, end):
-    start_time = time.time()
-    print(
-        f"Execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}"
-    )
 
-    with ThreadPoolExecutor(max_workers=12) as executor:
+    with ThreadPoolExecutor(max_workers=18) as executor:
 
         futures = [
             executor.submit(get_district_count, start, end),
@@ -431,18 +428,9 @@ def execute_task_in_thread(start, end):
         for future in futures:
             future.result()
 
-    end_time = time.time()
-    print(
-        f"Execution finished at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}"
-    )
-    print(f"Total execution time: {end_time - start_time} seconds")
 
-
+@time_execution
 def execute_parallel_tasks():
-    start_time = time.time()
-    print(
-        f"Execution started at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}"
-    )
 
     ranges = [
         (0, 2),
@@ -461,17 +449,11 @@ def execute_parallel_tasks():
     with Pool(processes=len(ranges)) as pool:
         pool.starmap(execute_task_in_thread, ranges)
 
-    end_time = time.time()
-    print(
-        f"Execution finished at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}"
-    )
-    print(f"Total execution time: {end_time - start_time} seconds")
-
 
 if __name__ == "__main__":
     execute_parallel_tasks()
     # 컴퓨터 종료 명령어 (운영체제에 따라 다름)
-    if os.name == "nt":  # Windows
-        os.system("shutdown /s /t 1")
-    else:  # Unix-based (Linux, macOS)
-        os.system("shutdown -h now")
+    # if os.name == "nt":  # Windows
+    #     os.system("shutdown /s /t 1")
+    # else:  # Unix-based (Linux, macOS)
+    #     os.system("shutdown -h now")
