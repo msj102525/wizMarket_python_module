@@ -229,3 +229,20 @@ class LocalStoreBusinessNumber(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class UpdateLocalStoreReview(BaseModel):
+    kakao_review_score: Optional[float] = None
+    kakao_review_count: Optional[int] = None
+    menu_1: Optional[str] = None
+    menu_1_price: Optional[int] = None
+    menu_2: Optional[str] = None
+    menu_2_price: Optional[int] = None
+    menu_3: Optional[str] = None
+    menu_3_price: Optional[int] = None
+    store_business_number: str
+
+
+    class Config:
+        from_attributes = True
