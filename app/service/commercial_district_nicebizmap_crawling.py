@@ -1457,7 +1457,7 @@ def execute_parallel_tasks():
     # max_workers = min(max_workers, len(values))
     # print(f"최종 max_workers: {max_workers}")
 
-    max_workers = len(values)
+    max_workers = len(values) + 2
     print(f"최종 max_workers: {max_workers}")
 
     with Pool(processes=max_workers) as pool:
