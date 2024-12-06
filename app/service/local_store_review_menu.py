@@ -26,30 +26,48 @@ from datetime import datetime
 from PIL import Image
 from io import BytesIO
 import base64
+from concurrent.futures import ThreadPoolExecutor
+import pymysql
+from tqdm import tqdm
 
 
-def test_car():
-    start_time = datetime.now()  # 시작 시간 기록
+
+def get_kakao_review():
+    start_time = datetime.now()
     print(f"Start Time: {start_time}")
 
-    data = crud_test_store_info()
- 
-    for item in data:
-        city_name = item['city_name']
-        district_name = item['district_name']
-        sub_district_name = item['sub_district_name']
-        store_name = item['STORE_NAME']
-        store_business_number = item['STORE_BUSINESS_NUMBER']
-        
-        # Print the extracted values or use them as needed
-        print(f"City: {city_name}, District: {district_name}, Sub-district: {sub_district_name}, Store Name: {store_name}")
+    data = crud_store_info()  # 모든 데이터 가져오기
+    connection = get_db_connection()  # 연결 한 번만 생성
 
-    connection = get_db_connection()
-    crawl_keyword(city_name, district_name, sub_district_name, store_name, store_business_number, connection)
+    try:
+        # 병렬 처리
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for item in data:
+                city_name = item['city_name']
+                district_name = item['district_name']
+                sub_district_name = item['sub_district_name']
+                store_name = item['STORE_NAME']
+                store_business_number = item['STORE_BUSINESS_NUMBER']
 
-    end_time = datetime.now()  # 종료 시간 기록
+                # 각 작업을 병렬로 실행
+                future = executor.submit(
+                    crawl_keyword,
+                    city_name, district_name, sub_district_name, store_name, store_business_number, connection
+                )
+                futures.append(future)
+
+            # 모든 작업 완료 대기
+            for future in futures:
+                future.result()
+
+    finally:
+        close_connection(connection)  # 모든 작업이 끝난 후 연결 닫기
+
+    end_time = datetime.now()
     print(f"End Time: {end_time}")
-    print(f"Total Time Taken: {end_time - start_time}")  # 소요시간 계산 및 출력
+    print(f"Total Time Taken: {end_time - start_time}")
+
 
 
 
@@ -57,10 +75,15 @@ def crawl_keyword(city_name, district_name, sub_district_name, store_name, store
 
     # 글로벌 드라이버 사용
     options = Options()
-    options.add_argument("--start-fullscreen")
+    options.add_argument("--headless")  # 헤드리스 모드 활성화
+    options.add_argument("--disable-gpu")
+    options.add_argument("--use-gl=swiftshader")
+    options.add_argument("--disable-webgl")
+    options.add_argument("--disable-software-rasterizer")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu") 
+    options.add_argument("--window-size=1920x1080")  # 해상도 설정
+    options.add_argument("--start-maximized")
 
     # WebDriver Manager를 이용해 ChromeDriver 자동 관리
     service = Service(ChromeDriverManager().install())
@@ -126,33 +149,42 @@ def crawl_keyword(city_name, district_name, sub_district_name, store_name, store
             kakao_review_count = None
 
         # #mArticle > div.cont_menu > ul 요소 찾기
-        menu_list = driver.find_element(By.CSS_SELECTOR, "#mArticle > div.cont_menu > ul")
+        try:
+            menu_list = driver.find_element(By.CSS_SELECTOR, "#mArticle > div.cont_menu > ul")
 
-        # 내부 요소(li 태그들) 가져오기
-        menu_items = menu_list.find_elements(By.TAG_NAME, "li")
+            # 내부 요소(li 태그들) 가져오기
+            menu_items = menu_list.find_elements(By.TAG_NAME, "li")
 
-        # 최대 3개의 메뉴와 가격을 저장
-        menu_data = {}
-        for index, item in enumerate(menu_items[:3], start=1):  # 최대 3개까지 반복
-            menu_details = item.text.split("\n")  # 이름과 가격 분리
-            menu_name = menu_details[0] if len(menu_details) > 0 else None
-            
-            # 가격 문자열을 정수로 변환
-            if len(menu_details) > 1 and menu_details[1]:
-                try:
-                    menu_price = int(menu_details[1].replace(",", ""))  # 쉼표 제거 후 int로 변환
-                except ValueError:
-                    menu_price = None  # 변환 실패 시 None
-            else:
-                menu_price = None
+            # 최대 3개의 메뉴와 가격을 저장
+            menu_data = {}
+            for index, item in enumerate(menu_items[:3], start=1):  # 최대 3개까지 반복
+                menu_details = item.text.split("\n")  # 이름과 가격 분리
+                menu_name = menu_details[0] if len(menu_details) > 0 else None
 
-            menu_data[f"menu_{index}"] = menu_name
-            menu_data[f"menu_{index}_price"] = menu_price
+                # 가격 문자열을 정수로 변환
+                if len(menu_details) > 1 and menu_details[1]:
+                    try:
+                        menu_price = int(menu_details[1].replace(",", ""))  # 쉼표 제거 후 int로 변환
+                    except ValueError:
+                        menu_price = None  # 변환 실패 시 None
+                else:
+                    menu_price = None
 
-        # 3개 미만일 경우 남은 항목을 None으로 채우기
-        for index in range(len(menu_items) + 1, 4):
-            menu_data[f"menu_{index}"] = None
-            menu_data[f"menu_{index}_price"] = None
+                menu_data[f"menu_{index}"] = menu_name
+                menu_data[f"menu_{index}_price"] = menu_price
+
+            # 3개 미만일 경우 남은 항목을 None으로 채우기
+            for index in range(len(menu_items) + 1, 4):
+                menu_data[f"menu_{index}"] = None
+                menu_data[f"menu_{index}_price"] = None
+
+        except Exception:
+            # 메뉴 리스트를 찾지 못한 경우 기본 값을 설정
+            menu_data = {
+                "menu_1": None, "menu_1_price": None,
+                "menu_2": None, "menu_2_price": None,
+                "menu_3": None, "menu_3_price": None,
+            }
 
         # 기존 데이터
         data = {
@@ -163,9 +195,10 @@ def crawl_keyword(city_name, district_name, sub_district_name, store_name, store
         # menu_data를 data에 병합
         data.update(menu_data)
         data["store_business_number"] = store_business_number
+
         # 최종 데이터 출력
-        print(data)
-        # crud_update_store_review(connection, data)
+        # print(data)
+        crud_update_store_review(connection, data)
 
     finally:
         driver.quit()
@@ -175,4 +208,4 @@ def crawl_keyword(city_name, district_name, sub_district_name, store_name, store
 
 
 if __name__ == "__main__":
-    test_car()
+    get_kakao_review()

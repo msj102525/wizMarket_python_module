@@ -17,7 +17,7 @@ def test_store_info():
                 STORE_NAME,
                 STORE_BUSINESS_NUMBER
             FROM REPORT
-            WHERE STORE_BUSINESS_NUMBER = 'MA010120220804438921'
+            WHERE STORE_BUSINESS_NUMBER = 'JS0001'
         """
         cursor.execute(query)
         result = cursor.fetchall()
@@ -44,8 +44,10 @@ def store_info():
                 city_name, 
                 district_name, 
                 sub_district_name,
-                STORE_NAME
+                STORE_NAME,
+                STORE_BUSINESS_NUMBER
             FROM REPORT
+            WHERE city_name = '강원특별자치도'
         """
 
         cursor.execute(query)
@@ -64,7 +66,7 @@ def store_info():
 def update_store_review(connection, data):
     cursor = connection.cursor(pymysql.cursors.DictCursor)
     logger = logging.getLogger(__name__)
-
+    # print(data)
     try:
         if connection.open:
             # SQL 인서트 문
@@ -78,7 +80,7 @@ def update_store_review(connection, data):
                     MENU_2 = %(menu_2)s,
                     MENU_2_PRICE = %(menu_2_price)s,
                     MENU_3 = %(menu_3)s,
-                    MENU_3_PRICE = %(menu_3_price)s,
+                    MENU_3_PRICE = %(menu_3_price)s
                 WHERE STORE_BUSINESS_NUMBER = %(store_business_number)s
             """
 
@@ -89,13 +91,16 @@ def update_store_review(connection, data):
                 cursor.execute(update_query, validated_record.dict())
                 # 커밋
                 connection.commit()
-
+                print(f"성공: {data['store_business_number']}, {data['kakao_review_score']}, {data['menu_1']}")
             except ValueError as e:
-                logger.error(f"Data Validation Error: {e}")
+                print(f"Data Validation Error: {e}")
 
     except pymysql.MySQLError as e:
-        logger.error(f"MySQL Error: {e}")
-        connection.rollback()
+        print(f"MySQL Error: {e}")
+        connection.rollback()  # 롤백 처리
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        raise
 
     finally:
         # 리소스 해제
