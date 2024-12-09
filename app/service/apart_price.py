@@ -27,7 +27,8 @@ from app.crud.apart_price import select_all_region, update_loc_info_apart_price
 import re
 
 def crawl_keyword():
-
+    start_time = datetime.datetime.now()  # 시작 시간 기록
+    print(f"크롤링 시작 시간: {start_time}")
     region_list = select_all_region()
     connection = get_db_connection()
     """
@@ -130,6 +131,10 @@ def crawl_keyword():
             time.sleep(1)
     finally:
         driver.quit()
+        end_time = datetime.datetime.now()
+        print(f"크롤링 종료 시간: {end_time}")
+        elapsed_time = end_time - start_time  # 실행 시간 계산
+        print(f"총 실행 시간: {elapsed_time}")
 
 
 
@@ -220,7 +225,7 @@ def process_region(driver, city, district, region_list, connection, init_flag):
                             child_div_2 = inner_div.find_element(By.CSS_SELECTOR, "span > div:nth-child(2)")
                             price_text = child_div_2.find_element(By.CSS_SELECTOR, "span").text
                             price_number = re.search(r"[\d,\.]+", price_text).group()
-                            price_number = float(price_number.replace(",", "")) * 1000  # 숫자 처리 및 * 1000
+                            price_number = float(price_number.replace(",", "")) * 1000 * 3.3 # 숫자 처리 및 * 1000
                             price_number_int = int(price_number) 
                             price = price_number_int
                             # print(price)
