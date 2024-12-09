@@ -120,3 +120,13 @@ class LocInfoGenerateImageText(BaseModel):
     loc_info_average_spend_j_score: float
     loc_info_average_sales_j_score: float
     loc_info_house_j_score: float
+
+
+class UpdateLocInfoApartPrice(BaseModel):
+    city_id: int
+    district_id: int
+    sub_district_id: int
+    apart_price: Optional[int] = None
+
+    class Config:
+        from_attributes = True

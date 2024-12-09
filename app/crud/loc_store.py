@@ -166,3 +166,53 @@ def update_data_to_old_local_store(cursor, data_dict):
     except Exception as e:
         print(f"Error updating old data in local_store: {e}")
         raise
+
+
+
+
+
+
+from app.db.connect import *
+
+
+def add_local_store_column():
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+        query = """
+            ALTER TABLE local_store
+            ADD COLUMN ktmyshop TINYINT(1) DEFAULT 0 COMMENT 'KT My Shop 여부',
+            ADD COLUMN jsam TINYINT(1) DEFAULT 0 COMMENT 'JSAM 여부';
+        """
+        cursor.execute(query)
+
+    finally:
+        if cursor:
+            close_cursor(cursor)
+        if connection:
+            close_connection(connection)
+
+
+def update_local_store_flag_column(store_business_number):
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+        query = """
+            UPDATE LOCAL_STORE
+            SET JSAM = 1
+            WHERE STORE_BUSINESS_NUMBER = %s
+        """
+        cursor.execute(query, store_business_number)
+        connection.commit()
+
+    finally:
+        if cursor:
+            close_cursor(cursor)
+        if connection:
+            close_connection(connection)
