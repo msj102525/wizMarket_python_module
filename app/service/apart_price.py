@@ -266,7 +266,7 @@ def process_region(driver, city, district, region_list, connection, init_flag):
         print(f"{city} - {district} 데이터 수집 중 오류 발생: {e}")
 
 
-def insert_data(region_list, city, district, sub_district_name, price, connection):
+def insert_data(region_list, city, district, sub_district_name, apart_price, connection):
     """
     지역 정보와 가격 데이터를 삽입하는 함수
     """
@@ -286,12 +286,12 @@ def insert_data(region_list, city, district, sub_district_name, price, connectio
             district_id = matching_region['district_id']
             sub_district_id = matching_region['sub_district_id']
 
-            print(f"삽입할 데이터: city_id={city_id}, district_id={district_id}, sub_district_id={sub_district_id}, price={price}")
+            # print(f"삽입할 데이터: city_id={city_id}, district_id={district_id}, sub_district_id={sub_district_id}, apart_price={apart_price}")
             data = {
                 "city_id" : city_id,
                 "district_id" : district_id,
                 "sub_district_id" : sub_district_id,
-                "apart_price" : price
+                "apart_price" : apart_price
             }
             # 데이터베이스 삽입 로직 추가
             update_loc_info_apart_price(connection, data)

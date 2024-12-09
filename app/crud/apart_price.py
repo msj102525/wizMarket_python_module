@@ -52,7 +52,7 @@ def update_loc_info_apart_price(connection, data):
             update_query = """
                 UPDATE loc_info
                 SET 
-                    APART_PRICE = %(apart_price)s,
+                    APART_PRICE = %(apart_price)s
                 WHERE 
                     CITY_ID = %(city_id)s AND 
                     DISTRICT_ID = %(district_id)s AND 
