@@ -294,7 +294,7 @@ def insert_data(region_list, city, district, sub_district_name, price, connectio
                 "apart_price" : price
             }
             # 데이터베이스 삽입 로직 추가
-            update_loc_info_apart_price(data, connection)
+            update_loc_info_apart_price(connection, data)
 
         else:
             print(f"일치하는 지역을 찾을 수 없습니다: {city}, {district}, {sub_district_name}")
