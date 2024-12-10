@@ -1,28 +1,15 @@
-import pymysql
-from openpyxl import load_workbook
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from concurrent.futures import ThreadPoolExecutor
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
-from datetime import datetime
-import os, time
-from tqdm import tqdm
-import sys
-from app.crud.loc_info import *
-from datetime import datetime
-from PIL import Image
-from io import BytesIO
-import base64
-from concurrent.futures import ThreadPoolExecutor
-import pymysql
-from tqdm import tqdm
+import datetime
+import time
+from app.db.connect import *
 from app.crud.apart_price import select_all_region, update_loc_info_apart_price
 import re
 
@@ -78,9 +65,8 @@ def crawl_keyword():
         )
         init_flag = True
         # 시/도 반복
-        for city_index, city_element in enumerate(city_elements[1:], start=1):  # 첫 번째 항목(전체) 제외
+        for city_index, city_element in enumerate(city_elements[5:], start=1):  # 첫 번째 항목(전체) 제외
             city_name = city_element.text.strip()
-            print(f"시/도: {city_name}")
 
             # 시/도 선택
             city_element.click()
@@ -112,7 +98,6 @@ def crawl_keyword():
                 init_flag = False
                 # 시/군/구가 마지막인 경우 시/도 선택 화면으로 돌아가기
                 if district_index == len(district_elements) - 1:  # 마지막 시/군/구 확인
-                    print(f"시/도 {city_name}의 모든 시/군/구 처리 완료.")
                     break  # 시/군/구 반복 종료
 
                 # 다시 시/군/구 선택 화면으로 돌아가기
@@ -265,7 +250,6 @@ def process_region(driver, city, district, region_list, connection, init_flag):
         time.sleep(3)
 
         # 데이터 수집 로직
-        print(f"데이터 수집 중: {city} - {district}")
 
     except Exception as e:
         print(f"{city} - {district} 데이터 수집 중 오류 발생: {e}")
