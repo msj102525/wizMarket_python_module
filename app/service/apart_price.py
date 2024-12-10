@@ -87,6 +87,8 @@ def crawl_keyword():
             # 시/군/구 반복
             for district_index, district_element in enumerate(district_elements[1:], start=1):  # 첫 번째 항목(전체) 제외
                 district_name = district_element.text.strip()
+                if district_name == "옹진군":
+                    continue
                 # 시/군/구 선택
                 district_element.click()
                 time.sleep(1)
@@ -296,8 +298,8 @@ def insert_data(region_list, city, district, sub_district_name, apart_price, con
                 "apart_price" : apart_price
             }
             # 데이터베이스 삽입 로직 추가
-            # print(data)
-            update_loc_info_apart_price(connection, data)
+            print(data)
+            # update_loc_info_apart_price(connection, data)
 
         else:
             print(f"일치하는 지역을 찾을 수 없습니다: {city}, {district}, {sub_district_name}")
