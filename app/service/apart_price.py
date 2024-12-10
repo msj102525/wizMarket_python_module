@@ -65,7 +65,7 @@ def crawl_keyword():
         )
         init_flag = True
         # 시/도 반복
-        for city_index, city_element in enumerate(city_elements[1:], start=1):  # 첫 번째 항목(전체) 제외
+        for city_index, city_element in enumerate(city_elements[4:], start=1):  # 첫 번째 항목(전체) 제외
             city_name = city_element.text.strip()
 
             # 시/도 선택
