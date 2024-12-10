@@ -65,7 +65,7 @@ def crawl_keyword():
         )
         init_flag = True
         # 시/도 반복
-        for city_index, city_element in enumerate(city_elements[9:], start=1):  # 첫 번째 항목(전체) 제외
+        for city_index, city_element in enumerate(city_elements[1:], start=1):  # 첫 번째 항목(전체) 제외
             city_name = city_element.text.strip()
 
             # 시/도 선택
@@ -87,8 +87,6 @@ def crawl_keyword():
             # 시/군/구 반복
             for district_index, district_element in enumerate(district_elements[1:], start=1):  # 첫 번째 항목(전체) 제외
                 district_name = district_element.text.strip()
-                if ' ' in district_name:
-                    continue  # 띄어쓰기가 포함된 항목 제외
                 # 시/군/구 선택
                 district_element.click()
                 time.sleep(1)
@@ -260,6 +258,11 @@ def insert_data(region_list, city, district, sub_district_name, apart_price, con
     """
     if district == '세종시':
         district = '세종특별자치시'
+    
+    district = district.split()[0]
+    
+    sub_district_name = sub_district_name.replace('·', '.')
+
     try:
         # 지역 일치 항목 찾기
         matching_region = next(
