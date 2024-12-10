@@ -263,6 +263,15 @@ def insert_data(region_list, city, district, sub_district_name, apart_price, con
     
     sub_district_name = sub_district_name.replace('·', '.')
 
+    if sub_district_name == "도화2.3동":
+        sub_district_name = "도화2,3동"
+    
+    if sub_district_name == "숭의1.3동":
+        sub_district_name = "숭의1,3동"
+    
+    if sub_district_name == "용현1.4동":
+        sub_district_name = "용현1,4동"
+
     try:
         # 지역 일치 항목 찾기
         matching_region = next(
@@ -287,6 +296,7 @@ def insert_data(region_list, city, district, sub_district_name, apart_price, con
                 "apart_price" : apart_price
             }
             # 데이터베이스 삽입 로직 추가
+            # print(data)
             update_loc_info_apart_price(connection, data)
 
         else:
