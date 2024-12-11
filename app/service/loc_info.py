@@ -28,7 +28,7 @@ def crawl_keyword(region_data, connection):
 
     # 초기 값 세팅
     reference_id = 3
-    year_month = datetime(2024, 10, 1).date()
+    year_month = datetime(2024, 12, 1).date()
 
     # 글로벌 드라이버 사용
     options = Options()
@@ -65,13 +65,13 @@ def crawl_keyword(region_data, connection):
         mo_btn_close_button = menu_div.find_element(By.CSS_SELECTOR, "div.lay.scrollbarView a.mo_btn_close")
         driver.execute_script("arguments[0].click();", mo_btn_close_button)
 
-        # 좌측 팝업 닫기
-        WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.ID, "notice0"))
-        )
-        notice_div = driver.find_element(By.ID, "notice0")
-        notice_close_label = notice_div.find_element(By.ID, "noticeClose0")
-        driver.execute_script("arguments[0].click();", notice_close_label)
+        # # 좌측 팝업 닫기
+        # WebDriverWait(driver, 30).until(
+        #     EC.presence_of_element_located((By.ID, "notice0"))
+        # )
+        # notice_div = driver.find_element(By.ID, "notice0")
+        # notice_close_label = notice_div.find_element(By.ID, "noticeClose0")
+        # driver.execute_script("arguments[0].click();", notice_close_label)
 
         # 우측 팝업 닫기
         WebDriverWait(driver, 30).until(
@@ -79,6 +79,30 @@ def crawl_keyword(region_data, connection):
         )
         notice_div = driver.find_element(By.ID, "notice1")
         notice_close_label = notice_div.find_element(By.ID, "noticeClose1")
+        driver.execute_script("arguments[0].click();", notice_close_label)
+
+        # 추가 팝업 닫기 1
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.ID, "notice2"))
+        )
+        notice_div = driver.find_element(By.ID, "notice2")
+        notice_close_label = notice_div.find_element(By.ID, "noticeClose2")
+        driver.execute_script("arguments[0].click();", notice_close_label)
+
+        # 추가 팝업 닫기 2
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.ID, "notice3"))
+        )
+        notice_div = driver.find_element(By.ID, "notice3")
+        notice_close_label = notice_div.find_element(By.ID, "noticeClose3")
+        driver.execute_script("arguments[0].click();", notice_close_label)
+
+        # 추가 팝업 닫기 3
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.ID, "notice0"))
+        )
+        notice_div = driver.find_element(By.ID, "notice0")
+        notice_close_label = notice_div.find_element(By.ID, "noticeClose0")
         driver.execute_script("arguments[0].click();", notice_close_label)
 
         # 검색 진행
@@ -233,7 +257,7 @@ def crawl_keyword(region_data, connection):
                 "y_m": year_month,
                 "reference_id": reference_id
             }
-        print(data)
+        # print(data)
 
         try:
             with connection.cursor() as cursor:
@@ -243,10 +267,10 @@ def crawl_keyword(region_data, connection):
                 #     data
                 # )
                 # 업데이트 함수
-                update_null_loc_info_data(
-                    connection,
-                    data
-                )
+                # update_null_loc_info_data(
+                #     connection,
+                #     data
+                # )
                 connection.commit()
         except Exception as e:
             print(f"Error inserting or updating data: {e}")
