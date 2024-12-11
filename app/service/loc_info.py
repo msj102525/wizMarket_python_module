@@ -262,10 +262,10 @@ def crawl_keyword(region_data, connection):
         try:
             with connection.cursor() as cursor:
                 # 인서트 함수
-                # insert_loc_info_data(
-                #     connection,
-                #     data
-                # )
+                insert_loc_info_data(
+                    connection,
+                    data
+                )
                 # 업데이트 함수
                 # update_null_loc_info_data(
                 #     connection,
@@ -334,7 +334,7 @@ def process_keywords_from_db():
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
-        executor.map(lambda region: process_file_directly([region]), keyword_list)
+        executor.map(lambda region: process_file_directly([region]), all_region_list)
 
 
 def begin_time():
