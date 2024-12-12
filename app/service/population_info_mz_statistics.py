@@ -14,7 +14,7 @@ from collections import defaultdict
 from app.db.connect import *
 
 def insert_by_date():
-    date_list = ['2024-08-01']
+    date_list = ['2024-11-01']
     connection = get_db_connection()
     for date_str in date_list:
         # 날짜를 각 반복 시마다 fetch_mz_population_and_insert 함수에 전달

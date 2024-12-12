@@ -30,8 +30,8 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def insert_by_date():
-    date_list = ['2024-10-01']
-    target_list = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident']
+    date_list = ['2024-12-01']
+    target_list = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident', 'apart_price']
 
     with ThreadPoolExecutor() as executor:
         futures = [
@@ -85,7 +85,7 @@ def process_nationwide(connection, ref_date, target_item):
 
     # J-Score 및 통계값 추가된 데이터를 가져옴
     updated_nation_info = process_j_score(nation_loc_info_by_region, filtered_values, '전국', target_item, statistics, ref_date)
-    # print("District Level:", updated_nation_info[:3])  # 데이터 일부만 출력하여 확인
+    # print("Nation Level:", updated_nation_info[:3])  # 데이터 일부만 출력하여 확인
     insert_loc_info_statistics(connection, updated_nation_info)  # 인서트 주석 처리
 
 
@@ -102,17 +102,16 @@ def process_city(connection, ref_date, target_item):
             target_item=target_item
         )
         city_loc_info_by_region.extend(city_loc_info_by_region_list)
-
+    # print(city_loc_info_by_region[:3])
     # null 값 제외 후 통계 계산
     city_grouped_loc_info = defaultdict(list)
     for item in city_loc_info_by_region:
         city_grouped_loc_info[item.city_id].append(item.target_item)
-
     updated_city_info = []
     for city_id, loc_info_values in city_grouped_loc_info.items():
         filtered_values = [value for value in loc_info_values if value is not None]
         statistics = calculate_statistics(filtered_values)
-
+    
         # 원본 데이터의 각 항목을 전달하여 통계 및 J-Score 계산
         region_info_for_city = [i for i in city_loc_info_by_region if i.city_id == city_id]
         updated_city_info.extend(process_j_score(region_info_for_city, filtered_values, '시/도', target_item, statistics, ref_date))
@@ -120,7 +119,7 @@ def process_city(connection, ref_date, target_item):
     for item in updated_city_info:
         item['district_id'] = None
 
-    # print("District Level:", updated_city_info[:3])  # 데이터 일부만 출력하여 확인
+    # print("City Level:", updated_city_info[:3])  # 데이터 일부만 출력하여 확인
     insert_loc_info_statistics(connection, updated_city_info)  # 인서트 주석 처리
 
 
@@ -137,21 +136,21 @@ def process_district(connection, ref_date, target_item):
             target_item=target_item
         )
         district_loc_info_by_region.extend(district_loc_info_by_region_list)
-
+    # print(district_loc_info_by_region[:3])
     # null 값 제외 후 통계 계산
     district_grouped_loc_info = defaultdict(list)
     for item in district_loc_info_by_region:
         district_grouped_loc_info[item.district_id].append(item.target_item)
-
+    # print(district_grouped_loc_info)
     updated_district_info = []
     for district_id, loc_info_values in district_grouped_loc_info.items():
         filtered_values = [value for value in loc_info_values if value is not None]
         statistics = calculate_statistics(filtered_values)
-
+        # print(filtered_values[:3])
         # 원본 데이터의 각 항목을 전달하여 통계 및 J-Score 계산
         region_info_for_district = [i for i in district_loc_info_by_region if i.district_id == district_id]
         updated_district_info.extend(process_j_score(region_info_for_district, filtered_values, '시/군/구', target_item, statistics, ref_date))
-
+    
     for item in updated_district_info:
         item['city_id'] = None
 
@@ -161,9 +160,11 @@ def process_district(connection, ref_date, target_item):
 
 
 def process_j_score(region_info, filtered_values, stat_level, target_item, statistics, ref_date):
+    if not filtered_values:  # 필터링된 값이 비어 있으면 처리하지 않음
+        return []
     # 이상치 제거 기준 설정: 무조건 3개로 통일
     outlier_removal_limit = 3
-    
+    # print('프로세스 J-score 전')
     # 내림차순 정렬 후 이상치 제거
     loc_info_values_sorted = sorted(filtered_values, reverse=True)
     stddev = statistics["stddev"]
@@ -236,11 +237,12 @@ def process_j_score(region_info, filtered_values, stat_level, target_item, stati
         })
 
         updated_region_info.append(item_dict)
-
+    # print('프로세스 J-score 후')
     return updated_region_info
 
 
 def calculate_j_scores(value, sorted_values, max_value, stat_level, target_item, is_non_outlier=False):
+    # print('J-score 계산 전')
     if value is None:
         return {
             f'j_score_rank': None if not is_non_outlier else None,
@@ -251,7 +253,7 @@ def calculate_j_scores(value, sorted_values, max_value, stat_level, target_item,
     # 순위 계산 (rank는 항상 이상치 제거 전 기준으로 계산)
     rank = sorted_values.index(value) + 1  # Rank calculation with the original sorted_values list
     j_score_rank = ((len(sorted_values) + 1 - rank) / len(sorted_values)) * 10 if value in sorted_values else None
-
+    # print('J-score 계산 후')
     # j_score_per는 max_value가 변경될 때만 재계산 (is_non_outlier=True일 때만)
     if is_non_outlier:
         # 이상치 제거 후 per 계산
@@ -291,6 +293,12 @@ def fetch_and_weight_j_score(connection, region, target_item, weight, ref_date, 
         j_score_per_non_outliers_list = select_loc_info_j_score_per_non_outliers(
             connection, region.city_id, region.district_id, region.sub_district_id, target_item, ref_date
         )
+        # target_item이 apart_price일 경우 null 값을 0으로 대체
+        if target_item == 'apart_price':
+            j_score_rank_list = [0 if score is None else score for score in j_score_rank_list]
+            j_score_per_list = [0 if score is None else score for score in j_score_per_list]
+            j_score_per_non_outliers_list = [0 if score is None else score for score in j_score_per_non_outliers_list]
+
     else:
         # mz에서 j_score 데이터 가져오기
         j_score_rank_list = select_mz_j_score_rank(connection, region.city_id, region.district_id, region.sub_district_id, ref_date)
@@ -309,7 +317,7 @@ def fetch_and_weight_j_score(connection, region, target_item, weight, ref_date, 
 
 
 def calculate_weighted_j_scores(connection, target_items, ref_date):
-    weights = [1, 2.5, 1.5, 1.5, 1.5, 1.5, 1, 1]  # 각 타겟 아이템별 가중치
+    weights = [1, 2.5, 1.5, 1.5, 1.5, 1.5, 1, 1, 1]  # 각 타겟 아이템별 가중치
     region_id_list = select_all_region_id(connection)
     
     # 기존 및 이상치 제거 후의 j_score 데이터를 저장하는 구조
@@ -338,6 +346,9 @@ def calculate_weighted_j_scores(connection, target_items, ref_date):
             region_scores[region_key]['j_score_per'].extend(weighted_j_score_per)
             region_scores[region_key]['j_score_rank'].extend(weighted_j_score_rank)
             region_scores[region_key]['j_score_per_non_outliers'].extend(weighted_j_score_per_non_outliers)
+
+            if target_item == 'apart_price':
+                print(region_scores)
 
     # mz j_score 데이터 병렬 처리 없이 가중치 적용
     for region in region_id_list:
@@ -412,7 +423,7 @@ def calculate_weighted_j_scores(connection, target_items, ref_date):
     insert_data = prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank, adjusted_j_score_per_non_outliers, ref_date)
     # for row in insert_data:
     #     print(row)
-    insert_loc_info_statistics_avg_j_score(insert_data)
+    # insert_loc_info_statistics_avg_j_score(insert_data)
 
     return final_j_score_per, final_j_score_rank, final_j_score_per_non_outliers
 
@@ -457,8 +468,8 @@ def prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank, adjusted_j_
 
 
 def execute_calculate_weighted_j_scores():
-    target_items = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident']
-    ref_dates = ['2024-10-01']
+    target_items = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident', 'apart_price']
+    ref_dates = ['2024-12-01']
 
     # 데이터베이스 연결 설정
     connection = get_db_connection()
@@ -518,5 +529,5 @@ def calculate_statistics(data):
 
 
 if __name__ == "__main__":  
-    insert_by_date()
+    # insert_by_date()
     execute_calculate_weighted_j_scores()

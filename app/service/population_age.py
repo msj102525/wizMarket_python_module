@@ -34,4 +34,4 @@ def fetch_population_by_age_and_insert(ref_date: date):
 
 
 if __name__ == "__main__":  
-    fetch_population_by_age_and_insert('2024-10-31')
+    fetch_population_by_age_and_insert('2024-11-30')

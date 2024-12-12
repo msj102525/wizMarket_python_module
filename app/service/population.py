@@ -231,4 +231,4 @@ def load_and_insert_population_data(file_name):
     # 이후 처리 로직은 동일하게 적용됩니다.
 
 if __name__ == "__main__":
-    load_and_insert_population_data("지역별(행정동) 성별 연령별 주민등록 인구수_20241031.csv")
+    load_and_insert_population_data("지역별(행정동) 성별 연령별 주민등록 인구수_20241130.csv")
