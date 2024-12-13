@@ -101,6 +101,86 @@ def fetch_test_keywords_from_db():
     ]
     return test_keywords
 
+
+# 12월 시/군/구 id 값 조회
+def fetch_no_sub_district_id():
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 지역 목록을 DB에서 조회
+        query = """
+            SELECT 
+                sub_district_id
+            FROM loc_info
+            where loc_info.y_m = '2024-12-01'
+        """
+        cursor.execute(query)
+        loc_info_sub_district_id_list = cursor.fetchall()
+
+    finally:
+        close_connection(connection)
+    # print(keywords)
+    return loc_info_sub_district_id_list
+
+# 기존 시/군/구 id 값 조회
+def fetch_sub_district_id():
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 지역 목록을 DB에서 조회
+        query = """
+            SELECT 
+                sub_district_id
+            FROM sub_district
+        """
+        cursor.execute(query)
+        all_sub_district_id_list = cursor.fetchall()
+
+    finally:
+        close_connection(connection)
+    # print(keywords)
+    return all_sub_district_id_list
+
+
+# 빠진 id 값으로 지역 list 생성
+def fetch_missing_list(sub_district_ids):
+    connection = get_db_connection()
+    cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+    try:
+        # 지역 목록을 DB에서 조회
+        query = f"""
+            SELECT city.city_name, city.city_id,
+                   district.district_name, district.district_id,
+                   sub_district.sub_district_name, sub_district.sub_district_id
+            FROM city
+            JOIN district ON city.city_id = district.city_id
+            JOIN sub_district ON district.district_id = sub_district.district_id
+            WHERE sub_district.sub_district_id IN ({','.join(['%s'] * len(sub_district_ids))})
+        """
+        cursor.execute(query, sub_district_ids)
+        all_region_list = cursor.fetchall()
+
+        # 키워드 리스트 생성
+        keywords = []
+        for region in all_region_list:
+            # 지역명을 합치기
+            region_name = f"{region['city_name']} {region['district_name']} {region['sub_district_name']}"
+            keywords.append({
+                'city_id': region['city_id'],
+                'district_id': region['district_id'],
+                'sub_district_id': region['sub_district_id'],
+                'keyword': region_name
+            })
+
+    finally:
+        close_connection(connection)
+    return keywords
+
+
+
 # null 목록 조회
 def fetch_null_keywords_from_db():
     """DB에서 지역 목록을 가져와 city_id, district_id, sub_district_id와 합쳐진 지역명을 포함한 리스트 생성"""
@@ -230,5 +310,3 @@ def update_null_loc_info_data(connection, data):
 
 
 
-if __name__=="__main__":
-    fetch_keywords_from_db()

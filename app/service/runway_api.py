@@ -26,7 +26,7 @@ with open(image_path, "rb") as f:
 task = client.image_to_video.create(
     model='gen3a_turbo',
     prompt_image=f"data:image/png;base64,{base64_image}",
-    prompt_text='Please take a close-up toward the store in the image.',
+    prompt_text='Make the subject of the image move vividly.',
 )
 task_id = task.id
 

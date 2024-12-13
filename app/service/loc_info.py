@@ -257,7 +257,7 @@ def crawl_keyword(region_data, connection):
                 "y_m": year_month,
                 "reference_id": reference_id
             }
-        # print(data)
+        print(data)
 
         try:
             with connection.cursor() as cursor:
@@ -328,13 +328,40 @@ def process_file_directly(all_region_list):
 
 
 def process_keywords_from_db():
-    all_region_list = fetch_keywords_from_db()
+    # all_region_list = fetch_keywords_from_db()
     # new_region_list = all_region_list[2692:]
-    keyword_list = fetch_test_keywords_from_db()
+    # keyword_list = fetch_test_keywords_from_db()
+    missing_list = find_missing_list()
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
-        executor.map(lambda region: process_file_directly([region]), all_region_list)
+        executor.map(lambda region: process_file_directly([region]), missing_list)
+
+
+def find_missing_list():
+    # 두 테이블에서 데이터를 가져오기
+    loc_info_sub_district_list = fetch_no_sub_district_id()  # loc_info: 딕셔너리 리스트 형식
+    all_sub_district_list = fetch_sub_district_id()          # all: 딕셔너리 리스트 형식
+
+    # 딕셔너리 리스트에서 'sub_district_id' 키 추출
+    loc_info_keys = {item["sub_district_id"] for item in loc_info_sub_district_list}
+    all_keys = {item["sub_district_id"] for item in all_sub_district_list}
+
+    # all에 있지만 loc_info에는 없는 ID 찾기
+    missing_keys = all_keys - loc_info_keys
+
+    # 누락된 ID를 이용해 지역 목록 가져오기
+    if missing_keys:
+        missing_list = fetch_missing_list(list(missing_keys))
+        print(missing_list)
+        return missing_list
+
+
+    
+
+
+
 
 
 def begin_time():
@@ -350,7 +377,7 @@ def finish_time(start_time):
 
 
 if __name__=="__main__":
-    start = begin_time()
-    process_keywords_from_db()
-    finish_time(start)
-    # test()
+    # start = begin_time()
+    # process_keywords_from_db()
+    # finish_time(start)
+    find_missing_list()

@@ -30,7 +30,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def insert_by_date():
-    date_list = ['2024-12-01']
+    date_list = ['2024-11-01']
     target_list = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident', 'apart_price']
 
     with ThreadPoolExecutor() as executor:
@@ -347,9 +347,6 @@ def calculate_weighted_j_scores(connection, target_items, ref_date):
             region_scores[region_key]['j_score_rank'].extend(weighted_j_score_rank)
             region_scores[region_key]['j_score_per_non_outliers'].extend(weighted_j_score_per_non_outliers)
 
-            if target_item == 'apart_price':
-                print(region_scores)
-
     # mz j_score 데이터 병렬 처리 없이 가중치 적용
     for region in region_id_list:
         (weighted_mz_j_score_per, weighted_mz_j_score_rank, weighted_mz_j_score_per_non_outliers) = fetch_and_weight_j_score(
@@ -423,7 +420,7 @@ def calculate_weighted_j_scores(connection, target_items, ref_date):
     insert_data = prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank, adjusted_j_score_per_non_outliers, ref_date)
     # for row in insert_data:
     #     print(row)
-    # insert_loc_info_statistics_avg_j_score(insert_data)
+    insert_loc_info_statistics_avg_j_score(insert_data)
 
     return final_j_score_per, final_j_score_rank, final_j_score_per_non_outliers
 
@@ -469,7 +466,7 @@ def prepare_insert_data(adjusted_j_score_per, adjusted_j_score_rank, adjusted_j_
 
 def execute_calculate_weighted_j_scores():
     target_items = ['shop', 'move_pop', 'sales', 'work_pop', 'income', 'spend', 'house', 'resident', 'apart_price']
-    ref_dates = ['2024-12-01']
+    ref_dates = ['2024-11-01']
 
     # 데이터베이스 연결 설정
     connection = get_db_connection()
@@ -529,5 +526,5 @@ def calculate_statistics(data):
 
 
 if __name__ == "__main__":  
-    # insert_by_date()
+    insert_by_date()
     execute_calculate_weighted_j_scores()
