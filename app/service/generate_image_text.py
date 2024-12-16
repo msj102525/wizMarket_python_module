@@ -200,5 +200,28 @@ def add_text_to_image():
     image.save(output_path)
     image.show()
 
+
+
+def stability_api():
+    api_secret = os.getenv("STABILITY_API_SECRET")
+    response = requests.post(
+        f"https://api.stability.ai/v2beta/stable-image/generate/core",
+        headers={
+            "authorization": f"Bearer {api_secret}",
+            "accept": "image/*"
+        },
+        files={"none": ''},
+        data={
+            "prompt": "Lighthouse on a cliff overlooking the ocean",
+            "output_format": "png",
+        },
+    )
+
+    if response.status_code == 200:
+        with open("./lighthouse.png", 'wb') as file:
+            file.write(response.content)
+    else:
+        raise Exception(str(response.json()))
+
 if __name__ == "__main__":
-    generate_movie_poster()
+    stability_api()
