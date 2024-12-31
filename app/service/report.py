@@ -1126,11 +1126,11 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 #################################################################################
 
-
+# 37400 seconds -> 약 10시간
 if __name__ == "__main__":
     # migration_old_talbe_to_new_table_report() # 583.14 seconds O
 
-    insert_or_update_local_store_info()  #  532.43 seconds # O
+    # insert_or_update_local_store_info()  #  532.43 seconds # O
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
     # insert_or_update_local_store_population_data()  # 49.84 seconds  # O
     # insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
@@ -1138,13 +1138,12 @@ if __name__ == "__main__":
     # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
     # insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
 
-    # insert_or_update_local_store_top5_menu()  # 54.82 seconds 
-    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 227.78 seconds 
-    # insert_or_update_commercial_district_main_detail_category_count_data()  # 45.07 seconds 
-    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  54.19 seconds
-    # insert_or_update_commercial_district_top5_top3_data()  # 137.99 seconds
-    # insert_or_update_commercial_district_j_score_average_data()  #  1410.80 seconds  # O
+    # insert_or_update_local_store_top5_menu()  # 139.11 seconds
+    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 4661.50 seconds
+    # insert_or_update_commercial_district_main_detail_category_count_data()  # 422.60 seconds
+    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  163.68 seconds
+    # insert_or_update_commercial_district_top5_top3_data()  # 569.44 seconds
+    # insert_or_update_commercial_district_j_score_average_data()  #  23355.34 seconds
     # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
-    # insert_or_update_commercial_district_commercial_district_average_data()  # 5549.02 seconds
-
+    # insert_or_update_commercial_district_commercial_district_average_data()  # 3630.66 seconds
     print("END!!!!!!!!!!!!!!!")
