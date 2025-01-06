@@ -1258,12 +1258,12 @@ def search_commercial_district(
                         )
                         or 0.0,
                         ###
-                        "market_size": convert_to_int_float(market_size) or 0,
+                        "market_size": convert_to_int_float(market_size) * 10000 or 0, # 원데이터로 저장
                         ###
                         "average_payment": convert_to_int_float(average_payment) or 0,
                         "usage_count": convert_to_int_float(usage_count) or 0,
                         ###
-                        "average_sales": convert_to_int_float(average_sales) or 0,
+                        "average_sales": convert_to_int_float(average_sales) * 10000 or 0, # 원데이터로 저장
                         "operating_cost": convert_to_int_float(operating_cost) or 0,
                         "food_cost": convert_to_int_float(food_cost) or 0,
                         "employee_cost": convert_to_int_float(employee_cost) or 0,
