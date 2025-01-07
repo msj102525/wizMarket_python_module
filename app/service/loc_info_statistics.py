@@ -295,9 +295,15 @@ def fetch_and_weight_j_score(connection, region, target_item, weight, ref_date, 
         )
         # target_item이 apart_price일 경우 null 값을 0으로 대체
         if target_item == 'apart_price':
-            j_score_rank_list = [0 if score is None else score for score in j_score_rank_list]
-            j_score_per_list = [0 if score is None else score for score in j_score_per_list]
-            j_score_per_non_outliers_list = [0 if score is None else score for score in j_score_per_non_outliers_list]
+            for score in j_score_rank_list:
+                if score.j_score_rank is None:
+                    score.j_score_rank = 0
+            for score in j_score_per_list:
+                if score.j_score_per is None:
+                    score.j_score_per = 0
+            for score in j_score_per_non_outliers_list:
+                if score.j_score_per_non_outliers is None:
+                    score.j_score_per_non_outliers = 0
 
     else:
         # mz에서 j_score 데이터 가져오기
@@ -305,6 +311,7 @@ def fetch_and_weight_j_score(connection, region, target_item, weight, ref_date, 
         j_score_per_list = select_mz_j_score_per(connection, region.city_id, region.district_id, region.sub_district_id, ref_date)
         # 이상치 제거 후 per만 가져오기 (rank는 제외)
         j_score_per_non_outliers_list = select_mz_j_score_per_non_outliers(connection, region.city_id, region.district_id, region.sub_district_id, ref_date)
+
 
     # Null 확인 후 가중치 적용
     weighted_j_score_per = [(j.j_score_per * weight) if j.j_score_per is not None else None for j in j_score_per_list]
@@ -526,5 +533,5 @@ def calculate_statistics(data):
 
 
 if __name__ == "__main__":  
-    insert_by_date()
+    # insert_by_date()
     execute_calculate_weighted_j_scores()

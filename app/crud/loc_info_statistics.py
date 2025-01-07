@@ -616,17 +616,8 @@ def insert_loc_info_statistics_avg_j_score(data):
             """
             # 데이터 리스트를 반복하여 인서트
             for record in data:
-                # 특정 조건일 때 인서트 전 프린트
-                if record["city_id"] == 2 and record["district_id"] == 27 and record["sub_district_id"] == 316:
-                    print(f"Before Insert: {record}")
-
                 try:
-                    cursor.execute(insert_query, record)  # 딕셔너리 형태로 인서트
-
-                    # 인서트 후 커서의 마지막 데이터 프린트
-                    if record["city_id"] == 2 and record["district_id"] == 27 and record["sub_district_id"] == 316:
-                        print(f"After Insert: {record}")
-                        
+                    cursor.execute(insert_query, record)  # 딕셔너리 형태로 인서트 
                 except ValueError as e:
                     logger.error(f"Data Validation Error: {e}")
 
