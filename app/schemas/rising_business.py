@@ -40,7 +40,7 @@ class RisingBusinessInsert(BaseModel):
     def __init__(self, **data):
         super().__init__(**data)
         if self.y_m is None:
-            self.y_m = "2024-09-30"
+            self.y_m = "2024-11-30"
 
     class Config:
         from_attributes = True
