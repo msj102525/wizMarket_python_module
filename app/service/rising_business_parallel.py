@@ -398,7 +398,7 @@ def search_rising_businesses_top5(
                         biz_detail_category_id=3,
                         growth_rate=0.0,
                         sub_district_rank=0,
-                        y_m="2024-09-30",
+                        y_m="2024-11-30",
                     )
                 )
             except Exception as e:
