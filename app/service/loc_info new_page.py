@@ -248,7 +248,7 @@ def process_file_directly(all_region_list):
 
 
 def process_keywords_from_db():
-    # all_region_list = fetch_keywords_from_db()
+    all_region_list = fetch_keywords_from_db()
     # new_region_list = all_region_list[2692:]
     keyword_list = fetch_test_keywords_from_db()
     # missing_list = find_missing_list()
@@ -256,7 +256,7 @@ def process_keywords_from_db():
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
-        executor.map(lambda region: process_file_directly([region]), keyword_list)
+        executor.map(lambda region: process_file_directly([region]), all_region_list)
 
 
 def find_missing_list():
