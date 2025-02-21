@@ -54,6 +54,19 @@ def get_db_connection():
     finally:
         connection.close()
 
+# 시간 재는 함수
+def time_execution(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(
+            f"Execution time for {func.__name__}: {end_time - start_time:.2f} seconds"
+        )
+        return result
+
+    return wrapper
+
 
 def batch_select_category_ids(
     biz_detail_category_ids: List[int],
@@ -195,6 +208,7 @@ def process_group(group, ref_date, category_ids):
 
 
 # 상권 분석 시장 규모
+@time_execution
 def commercial_district_market_size_statistics(ref_date: str):
     results = crud_select_market_size_has_value()
     results_with_j_score = calculate_j_score(results)
@@ -234,6 +248,7 @@ def commercial_district_market_size_statistics(ref_date: str):
 
 
 # 상권 분석 결제 건수
+@time_execution
 def commercial_district_usage_count_statistics(ref_date: str):
     results = crud_select_usage_count_has_value()
     results_with_j_score = calculate_j_score(results)
@@ -273,6 +288,7 @@ def commercial_district_usage_count_statistics(ref_date: str):
 
 
 # 상권 분석 평균 매출
+@time_execution
 def commercial_district_average_sales_statistics(ref_date: str):
     results = crud_select_average_sales_has_value()
     results_with_j_score = calculate_j_score(results)
@@ -351,6 +367,7 @@ def commercial_district_sub_district_density_statistics(ref_date: str):
 
 
 # 상권 분석 평균 결제
+@time_execution
 def commercial_average_payment_statistics(ref_date: str):
     results = crud_select_average_payment_has_value()
     results_with_j_score = calculate_j_score(results)
@@ -429,18 +446,6 @@ def commercial_district_column_name_statistics(column_name: str, ref_date: str):
 
 
 ##############################################################################################
-# 시간 재는 함수
-def time_execution(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        print(
-            f"Execution time for {func.__name__}: {end_time - start_time:.2f} seconds"
-        )
-        return result
-
-    return wrapper
 
 
 # 상권분석 가중치 통계
@@ -512,11 +517,11 @@ def commercial_district_j_score_weighted_average_statistics():
 
 
 if __name__ == "__main__":
-    # commercial_district_market_size_statistics("2024-09-30")
-    # commercial_district_usage_count_statistics("2024-09-30")
-    # commercial_district_average_sales_statistics("2024-09-30")
-    # commercial_district_sub_district_density_statistics("2024-09-30")
-    # commercial_average_payment_statistics("2024-09-30")
+    commercial_district_market_size_statistics("2024-12-31")
+    commercial_district_usage_count_statistics("2024-12-31")
+    commercial_district_average_sales_statistics("2024-12-31")
+    commercial_district_sub_district_density_statistics("2024-12-31")
+    commercial_average_payment_statistics("2024-12-31")
     # commercial_district_column_name_statistics("MARKET_SIZE", "2024-08-01")
-    # commercial_district_j_score_weighted_average_statistics() # 51.21 seconds
+    commercial_district_j_score_weighted_average_statistics()  # 2256.86 seconds
     print("END!!!!!!!!")
