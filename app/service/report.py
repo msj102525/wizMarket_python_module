@@ -83,7 +83,7 @@ def time_execution(func):
 # report 컬럼추가 정보 옮기기
 def insert_new_report_table_thread(
     old_report_list: List[Report],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -113,7 +113,7 @@ def migration_old_talbe_to_new_table_report():
 #################################################################################
 # 매장 기본 정보 insert 또는 update 함수
 def insert_or_update_local_store_info_thread(
-    store_info_list: List[LocalStoreBasicInfo], batch_size: int = 5000
+    store_info_list: List[LocalStoreBasicInfo], batch_size: int = 2500
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -142,7 +142,7 @@ def insert_or_update_local_store_info():
 
 # 매장 top5 insert 또는 update 함수
 def insert_or_update_local_store_top5_menu_thread(
-    store_top5_list: List[LocalStoreTop5Menu], batch_size: int = 5000
+    store_top5_list: List[LocalStoreTop5Menu], batch_size: int = 2500
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -157,7 +157,7 @@ def insert_or_update_local_store_top5_menu_thread(
 
 
 def select_local_store_top5_menus_thread(
-    local_store_rep_id_list: List[LocalStoreMappingRepId], batch_size: int = 5000
+    local_store_rep_id_list: List[LocalStoreMappingRepId], batch_size: int = 2500
 ) -> List[LocalStoreTop5Menu]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -195,7 +195,7 @@ def insert_or_update_local_store_top5_menu():
 # 입지분석 읍/면/동 J_SCORE 평균
 def insert_or_update_local_store_loc_info_j_score_average_data_thread(
     store_loc_info_j_score_average_data_list: List[LocalStoreLIJSWeightedAverage],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -217,7 +217,7 @@ def insert_or_update_local_store_loc_info_j_score_average_data_thread(
 
 def select_local_store_loc_info_j_score_average_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreLIJSWeightedAverage]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -267,7 +267,7 @@ def insert_or_update_local_store_loc_info_j_score_average_data():
 
 # 매장 읍/면/동 인구 정보 update 함수
 def insert_or_update_local_store_population_data_thread(
-    store_population_data_list: List[LocalStorePopulationData], batch_size: int = 5000
+    store_population_data_list: List[LocalStorePopulationData], batch_size: int = 2500
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -303,7 +303,7 @@ def insert_or_update_local_store_population_data():
 
 # 입지분석 데이터 주거인구, 직장인구, 유동인구, 업소수, 소득
 def insert_or_update_local_store_loc_info_data_thread(
-    store_loc_info_data_list: List[LocalStoreLocInfoData], batch_size: int = 5000
+    store_loc_info_data_list: List[LocalStoreLocInfoData], batch_size: int = 2500
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -321,7 +321,7 @@ def insert_or_update_local_store_loc_info_data_thread(
 
 def select_local_store_loc_info_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreLocInfoData]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -364,7 +364,7 @@ def insert_or_update_local_store_loc_info_data():
 # 입지분석 데이터 주거인구, 직장인구, 유동인구, 업소수, 소득, mz인구, 평균 소비, 평균 소득, 매장 평균 매출 JSCORE
 def insert_or_update_local_store_loc_info_j_score_data_thread(
     store_loc_info_j_score_data_list: List[LocalStoreLocInfoJscoreData],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -386,7 +386,7 @@ def insert_or_update_local_store_loc_info_j_score_data_thread(
 
 def select_local_store_loc_info_j_score_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreLocInfoData]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -433,7 +433,7 @@ def insert_or_update_local_store_loc_info_j_score_data():
 # 입지분석 주거인구, 직장인구, 수/비율
 def insert_or_update_local_store_loc_info_resident_work_pop_data_thread(
     store_loc_info_resident_work_pop_data_list: List[LocalStoreLocInfoData],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -455,7 +455,7 @@ def insert_or_update_local_store_loc_info_resident_work_pop_data_thread(
 
 def select_local_store_loc_info_resident_work_pop_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreLocInfoData]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -506,7 +506,7 @@ def insert_or_update_local_store_loc_info_resident_work_pop_data():
 # 입지분석 읍/면/동 유동인구, 시/도 평균 유동인구
 def insert_or_update_local_store_loc_info_move_pop_data_thread(
     store_loc_info_move_pop_data_list: List[LocalStoreMovePopData],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -526,7 +526,7 @@ def insert_or_update_local_store_loc_info_move_pop_data_thread(
 
 def select_local_store_loc_info_move_pop_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreMovePopData]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -657,7 +657,7 @@ def insert_or_update_commercial_district_j_score_weighted_average_data():
 # 상권 분석 대분류 갯수
 def insert_or_update_commercial_district_main_detail_category_count_data_thread(
     store_loc_info_cd_mc_count_data_list: List[LocalStoreMainCategoryCount],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -680,7 +680,7 @@ def insert_or_update_commercial_district_main_detail_category_count_data_thread(
 
 def select_commercial_district_main_detail_category_count_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreMainCategoryCount]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -734,7 +734,7 @@ def insert_or_update_commercial_district_j_score_average_data_thread(
     store_loc_info_cd_mc_count_data_list: List[
         LocalStoreCommercialDistrictJscoreAverage
     ],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -814,7 +814,7 @@ def insert_or_update_commercial_district_j_score_average_data():
 
 # 매장 상권분석 동별 소분류별 요일,시간대 매출 비중
 def insert_or_update_local_store_weekday_time_client_average_sales_thread(
-    store_top5_list: List[LocalStoreTop5Menu], batch_size: int = 5000
+    store_top5_list: List[LocalStoreTop5Menu], batch_size: int = 2500
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -836,7 +836,7 @@ def insert_or_update_local_store_weekday_time_client_average_sales_thread(
 
 
 def select_local_store_weekday_time_client_average_sales_thread(
-    local_store_rep_id_list: List[LocalStoreMappingRepId], batch_size: int = 5000
+    local_store_rep_id_list: List[LocalStoreMappingRepId], batch_size: int = 2500
 ) -> List[LocalStoreTop5Menu]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -915,7 +915,7 @@ def select_commercial_district_district_average_sales_thread(
     local_store_sub_district_id_list: List[
         LocalStoreMappingSubDistrictDetailCategoryId
     ],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreCDDistrictAverageSalesTop5]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -994,7 +994,7 @@ def insert_or_update_commercial_district_top5_top3_data_thread(
 
 def select_commercial_district_top5_top3_thread(
     local_store_sub_district_id_list: List[LocalStoreSubdistrictId],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> List[LocalStoreCDDistrictAverageSalesTop5]:
     results = []
     with ThreadPoolExecutor(max_workers=12) as executor:
@@ -1051,7 +1051,7 @@ def insert_or_update_commercial_district_commercial_district_average_data_thread
     store_loc_info_cd_mc_count_data_list: List[
         LocalStoreCommercialDistrictJscoreAverage
     ],
-    batch_size: int = 5000,
+    batch_size: int = 2500,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -1126,24 +1126,25 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 #################################################################################
 
-# 37400 seconds -> 약 10시간
 if __name__ == "__main__":
     # migration_old_talbe_to_new_table_report() # 583.14 seconds O
 
-    # insert_or_update_local_store_info()  #  532.43 seconds # O
-    # insert_or_update_local_store_loc_info_j_score_average_data()  # 40.96 seconds # O
-    # insert_or_update_local_store_population_data()  # 49.84 seconds  # O
-    # insert_or_update_local_store_loc_info_data()  # 522.93 seconds # O
-    # insert_or_update_local_store_loc_info_j_score_data()  #  63.58 seconds # O
-    # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 42.97 seconds # O
-    # insert_or_update_local_store_loc_info_move_pop_data()  #   43.68 seconds # O
+    insert_or_update_local_store_info()  #   142.06 seconds
+    insert_or_update_local_store_loc_info_j_score_average_data()  # 550.52 seconds
+    insert_or_update_local_store_population_data()  # 171.43 seconds
+    insert_or_update_local_store_loc_info_data()  # 112.37 seconds
+    insert_or_update_local_store_loc_info_j_score_data()  # 162.84 seconds
+    insert_or_update_local_store_loc_info_resident_work_pop_data()  # 104.71 seconds
+    insert_or_update_local_store_loc_info_move_pop_data()  # 555.05 seconds
+    # 약 30분
 
-    # insert_or_update_local_store_top5_menu()  # 139.11 seconds
-    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 4661.50 seconds
-    # insert_or_update_commercial_district_main_detail_category_count_data()  # 422.60 seconds
-    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  163.68 seconds
-    # insert_or_update_commercial_district_top5_top3_data()  # 569.44 seconds
-    # insert_or_update_commercial_district_j_score_average_data()  #  23355.34 seconds
-    # insert_or_update_commercial_district_district_average_sales_data()  #  3186.77 seconds
-    # insert_or_update_commercial_district_commercial_district_average_data()  # 3630.66 seconds
+    insert_or_update_local_store_top5_menu()  # 248.23 seconds
+    insert_or_update_commercial_district_j_score_weighted_average_data()  # 9990.48 seconds
+    insert_or_update_commercial_district_main_detail_category_count_data()  # 622.11 seconds
+    insert_or_update_commercial_district_weekday_time_client_average_sales()  #  294.81 seconds
+    insert_or_update_commercial_district_top5_top3_data()  # 777.15 seconds
+    insert_or_update_commercial_district_j_score_average_data()  #  68437.64 seconds
+    insert_or_update_commercial_district_district_average_sales_data()  #  5634.10 seconds
+    insert_or_update_commercial_district_commercial_district_average_data()  # 78961.68 seconds
+    # 약 46시간
     print("END!!!!!!!!!!!!!!!")
