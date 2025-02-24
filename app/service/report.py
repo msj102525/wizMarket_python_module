@@ -83,7 +83,7 @@ def time_execution(func):
 # report 컬럼추가 정보 옮기기
 def insert_new_report_table_thread(
     old_report_list: List[Report],
-    batch_size: int = 2500,
+    batch_size: int = 5000,
 ) -> None:
     with ThreadPoolExecutor(max_workers=12) as executor:
         futures = []
@@ -91,12 +91,12 @@ def insert_new_report_table_thread(
             batch = old_report_list[i : i + batch_size]
             futures.append(executor.submit(crud_insert_new_report_table, batch))
 
-        for future in tqdm(
-            as_completed(futures),
-            total=len(futures),
-            desc="Inserting old_report_table batches",
-        ):
-            future.result()
+        with tqdm(
+            total=len(futures), desc="Inserting old_report_table batches"
+        ) as pbar:
+            for future in as_completed(futures):
+                future.result()  
+                pbar.update(1)  
 
 
 @time_execution
@@ -1127,24 +1127,24 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 #################################################################################
 
 if __name__ == "__main__":
-    # migration_old_talbe_to_new_table_report() # 583.14 seconds O
+    migration_old_talbe_to_new_table_report()  # 874.75 seconds
 
-    insert_or_update_local_store_info()  #   142.06 seconds
-    insert_or_update_local_store_loc_info_j_score_average_data()  # 550.52 seconds
-    insert_or_update_local_store_population_data()  # 171.43 seconds
-    insert_or_update_local_store_loc_info_data()  # 112.37 seconds
-    insert_or_update_local_store_loc_info_j_score_data()  # 162.84 seconds
-    insert_or_update_local_store_loc_info_resident_work_pop_data()  # 104.71 seconds
-    insert_or_update_local_store_loc_info_move_pop_data()  # 555.05 seconds
-    # 약 30분
+    # insert_or_update_local_store_info()  #   142.06 seconds
+    # insert_or_update_local_store_loc_info_j_score_average_data()  # 550.52 seconds
+    # insert_or_update_local_store_population_data()  # 171.43 seconds
+    # insert_or_update_local_store_loc_info_data()  # 112.37 seconds
+    # insert_or_update_local_store_loc_info_j_score_data()  # 162.84 seconds
+    # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 104.71 seconds
+    # insert_or_update_local_store_loc_info_move_pop_data()  # 555.05 seconds
+    # # 약 30분
 
-    insert_or_update_local_store_top5_menu()  # 248.23 seconds
-    insert_or_update_commercial_district_j_score_weighted_average_data()  # 9990.48 seconds
-    insert_or_update_commercial_district_main_detail_category_count_data()  # 622.11 seconds
-    insert_or_update_commercial_district_weekday_time_client_average_sales()  #  294.81 seconds
-    insert_or_update_commercial_district_top5_top3_data()  # 777.15 seconds
-    insert_or_update_commercial_district_j_score_average_data()  #  68437.64 seconds
-    insert_or_update_commercial_district_district_average_sales_data()  #  5634.10 seconds
-    insert_or_update_commercial_district_commercial_district_average_data()  # 78961.68 seconds
+    # insert_or_update_local_store_top5_menu()  # 248.23 seconds
+    # insert_or_update_commercial_district_j_score_weighted_average_data()  # 9990.48 seconds
+    # insert_or_update_commercial_district_main_detail_category_count_data()  # 622.11 seconds
+    # insert_or_update_commercial_district_weekday_time_client_average_sales()  #  294.81 seconds
+    # insert_or_update_commercial_district_top5_top3_data()  # 777.15 seconds
+    # insert_or_update_commercial_district_j_score_average_data()  #  68437.64 seconds
+    # insert_or_update_commercial_district_district_average_sales_data()  #  5634.10 seconds
+    # insert_or_update_commercial_district_commercial_district_average_data()  # 78961.68 seconds
     # 약 46시간
     print("END!!!!!!!!!!!!!!!")

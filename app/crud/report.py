@@ -72,8 +72,12 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 floor_info=row["FLOOR_INFO"],
                                 latitude=row["LATITUDE"],
                                 longitude=row["LONGITUDE"],
-                                business_area_category_id=row["BUSINESS_AREA_CATEGORY_ID"],
-                                biz_detail_category_rep_name=row["BIZ_DETAIL_CATEGORY_REP_NAME"],
+                                business_area_category_id=row[
+                                    "BUSINESS_AREA_CATEGORY_ID"
+                                ],
+                                biz_detail_category_rep_name=row[
+                                    "BIZ_DETAIL_CATEGORY_REP_NAME"
+                                ],
                                 detail_category_top1_ordered_menu=row[
                                     "DETAIL_CATEGORY_TOP1_ORDERED_MENU"
                                 ],
@@ -321,6 +325,21 @@ def select_report_table(batch_size: int = 5000) -> List[Report]:
                                 rising_business_sub_district_rising_sales_top3_info=row[
                                     "RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO"
                                 ],
+                                loc_info_district_hot_place_top1_info=row[
+                                    "LOC_INFO_DISTRICT_HOT_PLACE_TOP1_INFO"
+                                ],
+                                loc_info_district_hot_place_top2_info=row[
+                                    "LOC_INFO_DISTRICT_HOT_PLACE_TOP2_INFO"
+                                ],
+                                loc_info_district_hot_place_top3_info=row[
+                                    "LOC_INFO_DISTRICT_HOT_PLACE_TOP3_INFO"
+                                ],
+                                loc_info_district_hot_place_top4_info=row[
+                                    "LOC_INFO_DISTRICT_HOT_PLACE_TOP4_INFO"
+                                ],
+                                loc_info_district_hot_place_top5_info=row[
+                                    "LOC_INFO_DISTRICT_HOT_PLACE_TOP5_INFO"
+                                ],
                                 loc_info_data_ref_date=row["LOC_INFO_DATA_REF_DATE"],
                                 nice_biz_map_data_ref_date=row[
                                     "NICE_BIZ_MAP_DATA_REF_DATE"
@@ -475,6 +494,12 @@ def insert_new_report_table(
                         RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP2_INFO,
                         RISING_BUSINESS_SUB_DISTRICT_RISING_SALES_TOP3_INFO,
 
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP1_INFO,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP2_INFO,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP3_INFO,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP4_INFO,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP5_INFO,
+
                         LOC_INFO_DATA_REF_DATE,
                         NICE_BIZ_MAP_DATA_REF_DATE,
                         POPULATION_DATA_REF_DATE,
@@ -497,6 +522,7 @@ def insert_new_report_table(
                             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s,
                             %s, %s, %s, %s, %s
                             )
                 """
@@ -613,6 +639,11 @@ def insert_new_report_table(
                         old_report.rising_business_sub_district_rising_sales_top1_info,
                         old_report.rising_business_sub_district_rising_sales_top2_info,
                         old_report.rising_business_sub_district_rising_sales_top3_info,
+                        old_report.loc_info_district_hot_place_top1_info,
+                        old_report.loc_info_district_hot_place_top2_info,
+                        old_report.loc_info_district_hot_place_top3_info,
+                        old_report.loc_info_district_hot_place_top4_info,
+                        old_report.loc_info_district_hot_place_top5_info,
                         old_report.loc_info_data_ref_date,
                         old_report.nice_biz_map_data_ref_date,
                         old_report.population_data_ref_date,
@@ -693,8 +724,12 @@ def select_local_store_info(batch_size: int = 5000) -> List[LocalStoreBasicInfo]
                                 floor_info=row["FLOOR_INFO"],
                                 latitude=row["LATITUDE"],
                                 longitude=row["LONGITUDE"],
-                                business_area_category_id=row["BUSINESS_AREA_CATEGORY_ID"],
-                                biz_detail_category_rep_name=row["BIZ_DETAIL_CATEGORY_NAME"],
+                                business_area_category_id=row[
+                                    "BUSINESS_AREA_CATEGORY_ID"
+                                ],
+                                biz_detail_category_rep_name=row[
+                                    "BIZ_DETAIL_CATEGORY_NAME"
+                                ],
                                 biz_main_categort_id=row["BIZ_MAIN_CATEGORY_ID"],
                                 biz_sub_categort_id=row["BIZ_SUB_CATEGORY_ID"],
                             )
@@ -2726,9 +2761,7 @@ def insert_or_update_commercial_district_j_score_weighted_average_data_batch(
                 connection.commit()
 
     except Exception as e:
-        logging.error(
-            f"Error inserting/updating LocalStoreCDJSWeightedAverage: {e}"
-        )
+        logging.error(f"Error inserting/updating LocalStoreCDJSWeightedAverage: {e}")
         raise
 
 

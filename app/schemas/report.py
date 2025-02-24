@@ -133,6 +133,12 @@ class Report(BaseModel):
     rising_business_sub_district_rising_sales_top2_info: Optional[str] = None
     rising_business_sub_district_rising_sales_top3_info: Optional[str] = None
     # VARCHAR(100)
+    loc_info_district_hot_place_top1_info: Optional[str] = None
+    loc_info_district_hot_place_top2_info: Optional[str] = None
+    loc_info_district_hot_place_top3_info: Optional[str] = None
+    loc_info_district_hot_place_top4_info: Optional[str] = None
+    loc_info_district_hot_place_top5_info: Optional[str] = None
+    # VARCHAR(100)
     loc_info_data_ref_date: Optional[date] = None  # DATE
     nice_biz_map_data_ref_date: Optional[date] = None  # DATE
     population_data_ref_date: Optional[date] = None  # DATE
