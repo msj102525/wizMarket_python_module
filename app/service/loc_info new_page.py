@@ -155,9 +155,46 @@ def crawl_keyword(region_data, connection):
                 print(f"❌ {button_id} 처리 중 오류 발생: {e}")
 
         
+        # ✅ shop 값이 없으면 줌아웃 후 다시 시도
+        if not source_data["shop"]:  # shop이 None이거나 빈 값이면 실행
+            try:
+                zoom_out_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CLASS_NAME, "zoomOut"))
+                )
+                driver.execute_script("arguments[0].click();", zoom_out_button)
+
+                # 줌아웃 후 다시 대기
+                time.sleep(5)  # 지도 로딩 대기
+
+                # ✅ 줌아웃 후 다시 데이터 크롤링 시도
+                for button_id, key in buttons.items():
+                    try:
+                        target_text = last_keyword
+
+                        # 버튼 클릭
+                        menu_button = WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable((By.ID, button_id))
+                        )
+                        driver.execute_script("arguments[0].click();", menu_button)
+
+                        # 버튼 클릭 후 로딩 시간 대기
+                        time.sleep(10)  # 페이지 로딩 대기
+
+                        # `p` 태그와 같은 `div` 내의 `span` 태그 값 가져오기
+                        span_element = WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.XPATH, f"/html/body/section/div/article/section[1]/div[2]/div[6]/div//p[contains(text(), '{target_text}')]/following-sibling::span"))
+                        )
+                        source_data[key] = span_element.text  # 매핑된 키에 값 저장
+                        print(f"✅ {key} 값 다시 저장: {source_data[key]}")
+
+                    except Exception as e:
+                        print(f"❌ {button_id} 줌아웃 후 다시 처리 중 오류 발생: {e}")
+
+            except Exception as e:
+                print(f"❌ 줌아웃 버튼 클릭 중 오류 발생: {e}")
+
         div_content = source_data
       
-
         # 검색 결과에 따라 데이터 인서트
         if div_content:
             data = parse_html(div_content, region_data, reference_id, year_month)
@@ -185,15 +222,15 @@ def crawl_keyword(region_data, connection):
         try:
             with connection.cursor() as cursor:
                 # 인서트 함수
-                insert_loc_info_data(
-                    connection,
-                    data
-                )
-                # 업데이트 함수
-                # update_null_loc_info_data(
+                # insert_loc_info_data(
                 #     connection,
                 #     data
                 # )
+                # 업데이트 함수
+                update_null_loc_info_data(
+                    connection,
+                    data
+                )
                 connection.commit()
         except Exception as e:
             print(f"Error inserting or updating data: {e}")
@@ -202,7 +239,6 @@ def crawl_keyword(region_data, connection):
 
     finally:
         driver.quit()
-
 
 
 # 데이터 변환 함수
@@ -248,15 +284,16 @@ def process_file_directly(all_region_list):
 
 
 def process_keywords_from_db():
-    all_region_list = fetch_keywords_from_db()
+    # all_region_list = fetch_null_keywords_from_db()
     # new_region_list = all_region_list[2692:]
-    keyword_list = fetch_test_keywords_from_db()
+    # keyword_list = fetch_test_keywords_from_db()
     # missing_list = find_missing_list()
+    null_list = fetch_null_keywords_from_db()
 
 
     with ThreadPoolExecutor(max_workers=10) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
-        executor.map(lambda region: process_file_directly([region]), all_region_list)
+        executor.map(lambda region: process_file_directly([region]), null_list)
 
 
 def find_missing_list():
@@ -278,12 +315,6 @@ def find_missing_list():
         return missing_list
 
 
-    
-
-
-
-
-
 def begin_time():
     time_1 = datetime.now()
     print("Start Time:", time_1)
@@ -297,7 +328,7 @@ def finish_time(start_time):
 
 
 if __name__=="__main__":
-    start = begin_time()
+    # start = begin_time()
     process_keywords_from_db()
-    finish_time(start)
+    # finish_time(start)
     # find_missing_list()

@@ -81,29 +81,29 @@ def fetch_test_keywords_from_db():
     # 특정 테스트 데이터를 수동으로 설정
     test_keywords = [
         {
-            'city_id': 9,
-            'district_id': 144,
-            'sub_district_id': 2279,
-            'keyword': '서울특별시 영등포구 당산2동'
+            'city_id': 1,
+            'district_id': 1,
+            'sub_district_id': 1,
+            'keyword': '강원특별자치도 강릉시 강남동'
         },
-        {
-            'city_id': 9,
-            'district_id': 125,
-            'sub_district_id': 1967,
-            'keyword': '서울특별시 강남구 역삼1동'
-        },
-        {
-            'city_id': 3,
-            'district_id': 58,
-            'sub_district_id': 907,
-            'keyword': '경상남도 양산시 물금읍'
-        },
-        {
-            'city_id': 9,
-            'district_id': 136,
-            'sub_district_id': 2141,
-            'keyword': '서울특별시 동작구 상도1동'
-        },
+        # {
+        #     'city_id': 9,
+        #     'district_id': 125,
+        #     'sub_district_id': 1967,
+        #     'keyword': '서울특별시 강남구 역삼1동'
+        # },
+        # {
+        #     'city_id': 3,
+        #     'district_id': 58,
+        #     'sub_district_id': 907,
+        #     'keyword': '경상남도 양산시 물금읍'
+        # },
+        # {
+        #     'city_id': 9,
+        #     'district_id': 136,
+        #     'sub_district_id': 2141,
+        #     'keyword': '서울특별시 동작구 상도1동'
+        # },
     ]
     return test_keywords
 
@@ -205,7 +205,7 @@ def fetch_null_keywords_from_db():
             JOIN sub_district ON district.district_id = sub_district.district_id
             JOIN loc_info ON sub_district.sub_district_id = loc_info.sub_district_id
             WHERE loc_info.shop IS NULL 
-            AND loc_info.y_m = '2024-10-01'
+            AND loc_info.y_m = '2024-12-01'
         """
         cursor.execute(query)
         all_region_list = cursor.fetchall()
