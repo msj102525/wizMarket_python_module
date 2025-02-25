@@ -289,9 +289,9 @@ def process_keywords_from_db():
     # keyword_list = fetch_test_keywords_from_db()
     # missing_list = find_missing_list()
     null_list = fetch_null_keywords_from_db()
+    # test_list = null_list[:5]
 
-
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
         executor.map(lambda region: process_file_directly([region]), null_list)
 
@@ -328,7 +328,7 @@ def finish_time(start_time):
 
 
 if __name__=="__main__":
-    # start = begin_time()
+    start = begin_time()
     process_keywords_from_db()
-    # finish_time(start)
+    finish_time(start)
     # find_missing_list()
