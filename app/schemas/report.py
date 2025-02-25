@@ -215,6 +215,15 @@ class LocalStoreSubdistrictId(BaseModel):
         from_attributes = True
 
 
+# 매장별 시/군/구 id 조회
+class LocalStoreDistrictId(BaseModel):
+    store_business_number: str
+    district_id: int
+
+    class Config:
+        from_attributes = True
+
+
 # 매장별 읍/면/동 id 조회
 class LocalStorePopulationData(BaseModel):
     store_business_number: str
@@ -506,6 +515,36 @@ class LocalStoreCDCommercialDistrict(BaseModel):
 
         if self.commercial_district_sub_district_usage_count is None:
             self.commercial_district_sub_district_usage_count = 0.0
+
+
+# 입지분석 시/군/구 핫플레이스 TOP5 (읍/면/동, 평균유동인구, 매장평균매출, JSCORE점수)
+class LocalStoreLocInfoDistrictHotPlaceTop5(BaseModel):
+    store_business_number: str
+    loc_info_district_hot_place_top1_info: Optional[str]
+    loc_info_district_hot_place_top2_info: Optional[str]
+    loc_info_district_hot_place_top3_info: Optional[str]
+    loc_info_district_hot_place_top4_info: Optional[str]
+    loc_info_district_hot_place_top5_info: Optional[str]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.loc_info_district_hot_place_top1_info is None:
+            self.loc_info_district_hot_place_top1_info = ""
+
+        if self.loc_info_district_hot_place_top2_info is None:
+            self.loc_info_district_hot_place_top2_info = ""
+
+        if self.loc_info_district_hot_place_top3_info is None:
+            self.loc_info_district_hot_place_top3_info = ""
+
+        if self.loc_info_district_hot_place_top4_info is None:
+            self.loc_info_district_hot_place_top4_info = ""
+
+        if self.loc_info_district_hot_place_top5_info is None:
+            self.loc_info_district_hot_place_top5_info = ""
+
+    class Config:
+        from_attributes = True
 
 
 ####################

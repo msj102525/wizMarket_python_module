@@ -16,6 +16,7 @@ from app.crud.report import (
     select_local_store_sub_district_rep_id as crud_select_local_store_sub_district_rep_id,
     insert_or_update_store_info_batch as crud_insert_or_update_store_info_batch,
     select_local_store_sub_district_id as crud_select_local_store_sub_district_id,
+    select_local_store_district_id as crud_select_local_store_district_id,
     select_local_store_loc_info_data as crud_select_local_store_loc_info_data,
     insert_or_update_loc_info_data_batch as crud_insert_or_update_loc_info_data_batch,
     select_local_store_loc_info_j_score_data as crud_select_local_store_loc_info_j_score_data,
@@ -41,6 +42,8 @@ from app.crud.report import (
     select_commercial_district_commercial_district_average_data as crud_select_commercial_district_commercial_district_average_data,
     insert_or_update_commercial_district_commercial_district_average_data_batch as crud_insert_or_update_commercial_district_commercial_district_average_data_batch,
     select_report_table,
+    select_loc_info_district_hot_place_top5_thread as crud_select_loc_info_district_hot_place_top5_thread,
+    insert_or_update_loc_info_district_hot_place_top5_data_thread as crud_insert_or_update_loc_info_district_hot_place_top5_data_thread,
 )
 from app.db.connect import get_db_connection
 from app.schemas.report import (
@@ -48,8 +51,10 @@ from app.schemas.report import (
     LocalStoreCDCommercialDistrict,
     LocalStoreCDDistrictAverageSalesTop5,
     LocalStoreCommercialDistrictJscoreAverage,
+    LocalStoreDistrictId,
     LocalStoreLIJSWeightedAverage,
     LocalStoreLocInfoData,
+    LocalStoreLocInfoDistrictHotPlaceTop5,
     LocalStoreLocInfoJscoreData,
     LocalStoreMainCategoryCount,
     LocalStoreMappingRepId,
@@ -95,8 +100,8 @@ def insert_new_report_table_thread(
             total=len(futures), desc="Inserting old_report_table batches"
         ) as pbar:
             for future in as_completed(futures):
-                future.result()  
-                pbar.update(1)  
+                future.result()
+                pbar.update(1)
 
 
 @time_execution
@@ -1126,8 +1131,85 @@ def insert_or_update_commercial_district_commercial_district_average_data():
 
 #################################################################################
 
+# 입지분석 시/군/구 핫플레이스 TOP5 (읍/면/동, 평균유동인구, 매장평균매출, JSCORE점수)
+def insert_or_update_loc_info_district_hot_place_top5_data_thread(
+    store_loc_info_cd_mc_count_data_list: List[LocalStoreRisingBusinessNTop5SDTop3],
+    batch_size: int = 2500,
+) -> None:
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(store_loc_info_cd_mc_count_data_list), batch_size):
+            batch = store_loc_info_cd_mc_count_data_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_insert_or_update_loc_info_district_hot_place_top5_data_thread,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Inserting loc info hot place top5 batches",
+        ):
+            future.result()
+
+
+def select_loc_info_district_hot_place_top5_thread(
+    local_store_sub_district_id_list: List[LocalStoreDistrictId],
+    batch_size: int = 2500,
+) -> List[LocalStoreLocInfoDistrictHotPlaceTop5]:
+    results = []
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        futures = []
+        for i in range(0, len(local_store_sub_district_id_list), batch_size):
+            batch = local_store_sub_district_id_list[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    crud_select_loc_info_district_hot_place_top5_thread,
+                    batch,
+                )
+            )
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="SELECT LOC_INFO Hot Place top5 batches",
+        ):
+            try:
+                batch_result = future.result()
+                results.extend(batch_result)
+            except Exception as e:
+                print(f"배치 처리 중 오류 발생: {e}")
+                continue
+
+    return results
+
+
+@time_execution
+def insert_or_update_loc_info_district_hot_place_top5_data():
+    local_store_district_id_list: List[LocalStoreDistrictId] = (
+        crud_select_local_store_district_id()
+    )
+
+    print(len(local_store_district_id_list))
+    print(local_store_district_id_list[0])
+
+    loc_info_district_hot_place_top5_list = (
+        select_loc_info_district_hot_place_top5_thread(local_store_district_id_list)
+    )
+    print(len(loc_info_district_hot_place_top5_list))
+    print(loc_info_district_hot_place_top5_list[0])
+
+    insert_or_update_loc_info_district_hot_place_top5_data_thread(
+        loc_info_district_hot_place_top5_list
+    )
+
+
+#################################################################################
+
 if __name__ == "__main__":
-    migration_old_talbe_to_new_table_report()  # 874.75 seconds
+    # migration_old_talbe_to_new_table_report()  # 874.75 seconds
 
     # insert_or_update_local_store_info()  #   142.06 seconds
     # insert_or_update_local_store_loc_info_j_score_average_data()  # 550.52 seconds
@@ -1136,6 +1218,7 @@ if __name__ == "__main__":
     # insert_or_update_local_store_loc_info_j_score_data()  # 162.84 seconds
     # insert_or_update_local_store_loc_info_resident_work_pop_data()  # 104.71 seconds
     # insert_or_update_local_store_loc_info_move_pop_data()  # 555.05 seconds
+    # insert_or_update_loc_info_district_hot_place_top5_data() # 776.31 seconds
     # # 약 30분
 
     # insert_or_update_local_store_top5_menu()  # 248.23 seconds

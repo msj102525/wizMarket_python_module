@@ -18,8 +18,10 @@ from app.schemas.report import (
     LocalStoreCDJSWeightedAverage,
     LocalStoreCDWeekdayTiemAveragePercent,
     LocalStoreCommercialDistrictJscoreAverage,
+    LocalStoreDistrictId,
     LocalStoreLIJSWeightedAverage,
     LocalStoreLocInfoData,
+    LocalStoreLocInfoDistrictHotPlaceTop5,
     LocalStoreLocInfoJscoreData,
     LocalStoreMainCategoryCount,
     LocalStoreMappingSubDistrictDetailCategoryId,
@@ -866,13 +868,16 @@ def select_local_store_sub_district_id(
         with get_db_connection() as connection:
             with connection.cursor(pymysql.cursors.DictCursor) as cursor:
                 select_query = """
+                    WITH LATEST AS (
+                        SELECT MAX(LOCAL_YEAR) AS MAX_YEAR, MAX(LOCAL_QUARTER) AS MAX_QUARTER FROM LOCAL_STORE
+                    )
                     SELECT
                         STORE_BUSINESS_NUMBER,
                         SUB_DISTRICT_ID
                     FROM LOCAL_STORE
-                    WHERE LOCAL_YEAR = (SELECT MAX(LOCAL_YEAR) FROM LOCAL_STORE)
-                    AND LOCAL_QUARTER = (SELECT MAX(LOCAL_QUARTER) FROM LOCAL_STORE)
-                    ;
+                    JOIN LATEST
+                    ON LOCAL_YEAR = LATEST.MAX_YEAR
+                    AND LOCAL_QUARTER = LATEST.MAX_QUARTER;
                 """
 
                 cursor.execute(select_query)
@@ -2077,7 +2082,6 @@ def select_commercial_district_top5_top3_data_batch(
         with get_db_connection() as connection:
             cursor = connection.cursor(pymysql.cursors.DictCursor)
 
-            # TOP5 Query - ORDER BY 제거
             select_top5_query = """
                 WITH RankedBusiness AS (
                     SELECT 
@@ -2102,10 +2106,8 @@ def select_commercial_district_top5_top3_data_batch(
                 WHERE NATIONAL_TOP5 <= 5
             """
 
-            # sub_district_id 리스트 생성
             sub_district_ids = [store_info.sub_district_id for store_info in batch]
 
-            # TOP3 Query - ORDER BY 제거
             select_top3_query = f"""
                 WITH RankedBusiness AS (
                     SELECT 
@@ -2134,38 +2136,30 @@ def select_commercial_district_top5_top3_data_batch(
                 WHERE NATIONAL_TOP3 <= 3
             """
 
-            # Execute TOP5 query
             cursor.execute(select_top5_query)
             top5_rows = cursor.fetchall()
 
-            # Execute TOP3 query
             cursor.execute(select_top3_query, sub_district_ids)
             top3_rows = cursor.fetchall()
 
-            # Process results for each store
             for store_info in batch:
-                # Format TOP5 data
                 top5_info = []
                 for row in top5_rows:
                     info = f"{row['DISTRICT_NAME']},{row['SUB_DISTRICT_NAME']},{row['BIZ_DETAIL_CATEGORY_NAME']},{row['GROWTH_RATE']}"
                     top5_info.append(info)
 
-                # Fill remaining TOP5 slots with empty strings if necessary
                 while len(top5_info) < 5:
                     top5_info.append(",,,")
 
-                # Filter and format TOP3 data for current sub_district
                 current_store_top3 = []
                 for row in top3_rows:
                     if row["SUB_DISTRICT_ID"] == store_info.sub_district_id:
                         info = f"{row['DISTRICT_NAME']},{row['SUB_DISTRICT_NAME']},{row['BIZ_DETAIL_CATEGORY_NAME']},{row['GROWTH_RATE']}"
                         current_store_top3.append(info)
 
-                # Fill remaining TOP3 slots with empty strings if necessary
                 while len(current_store_top3) < 3:
                     current_store_top3.append(",,,")
 
-                # Create result object
                 result = LocalStoreRisingBusinessNTop5SDTop3(
                     store_business_number=store_info.store_business_number,
                     rising_business_national_rising_sales_top1_info=(
@@ -2331,6 +2325,137 @@ def select_commercial_district_commercial_district_average_data(
 
     except Exception as e:
         logger.error(f"Error processing commercial district data: {e}")
+        raise
+
+
+#########################################################################################
+# 입지분석 시/군/구 핫플레이스 TOP5 (지역, 평균유동인구, 매장평균매출, JSCORE점수)
+# 매장 시/군/구 id 조회
+def select_local_store_district_id(
+    batch_size: int = 5000,
+) -> List[LocalStoreDistrictId]:
+    logger = logging.getLogger(__name__)
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                select_query = """
+                    WITH LATEST AS (
+                        SELECT MAX(LOCAL_YEAR) AS MAX_YEAR, MAX(LOCAL_QUARTER) AS MAX_QUARTER FROM LOCAL_STORE
+                    )
+                    SELECT
+                        STORE_BUSINESS_NUMBER,
+                        DISTRICT_ID
+                    FROM LOCAL_STORE
+                    JOIN LATEST
+                    ON LOCAL_YEAR = LATEST.MAX_YEAR
+                    AND LOCAL_QUARTER = LATEST.MAX_QUARTER;
+                """
+
+                cursor.execute(select_query)
+
+                results = []
+                while True:
+                    rows = cursor.fetchmany(batch_size)
+                    if not rows:
+                        break
+                    for row in rows:
+                        if row["DISTRICT_ID"] is not None:
+                            results.append(
+                                LocalStoreDistrictId(
+                                    store_business_number=row["STORE_BUSINESS_NUMBER"],
+                                    district_id=row["DISTRICT_ID"],
+                                )
+                            )
+
+            return results
+
+    except Exception as e:
+        logger.error(f"Error LocalStoreDistrictId data: {e}")
+        raise
+
+
+# 입지분석 시/군/구 핫플레이스 TOP5 (읍/면/동, 평균유동인구, 매장평균매출, JSCORE점수)
+def select_loc_info_district_hot_place_top5_thread(
+    batch: List[LocalStoreDistrictId],
+) -> List[LocalStoreLocInfoDistrictHotPlaceTop5]:
+    logger = logging.getLogger(__name__)
+    results = []
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                cursor.execute(
+                    "SELECT MAX(REF_DATE) AS MAX_REF_DATE FROM LOC_INFO_STATISTICS"
+                )
+                latest_date = cursor.fetchone()["MAX_REF_DATE"]
+
+                district_ids = [store_info.district_id for store_info in batch]
+                unique_district_ids = list(set(district_ids))
+
+                # 모든 district_id에 대한 데이터를 한 번에 쿼리
+                placeholders = ", ".join(["%s"] * len(unique_district_ids))
+                select_all_query = f"""
+                    SELECT
+                        LIS.DISTRICT_ID,
+                        SD.SUB_DISTRICT_NAME,
+                        LI.MOVE_POP,
+                        LI.SALES,
+                        LIS.J_SCORE
+                    FROM LOC_INFO_STATISTICS LIS
+                    JOIN SUB_DISTRICT SD ON SD.SUB_DISTRICT_ID = LIS.SUB_DISTRICT_ID
+                    JOIN LOC_INFO LI ON LI.SUB_DISTRICT_ID = LIS.SUB_DISTRICT_ID AND LI.Y_M = %s
+                    WHERE LIS.DISTRICT_ID IN ({placeholders})
+                    AND LIS.REF_DATE = %s
+                    AND TARGET_ITEM = 'j_score_avg'
+                    AND LIS.J_SCORE < 10
+                    ORDER BY LIS.DISTRICT_ID, LIS.J_SCORE DESC
+                """
+
+                params = [latest_date] + unique_district_ids + [latest_date]
+                cursor.execute(select_all_query, params)
+                all_rows = cursor.fetchall()
+
+                district_results = {}
+                for row in all_rows:
+                    district_id = row["DISTRICT_ID"]
+                    if district_id not in district_results:
+                        district_results[district_id] = []
+
+                    if len(district_results[district_id]) < 5:
+                        info = f"{row['SUB_DISTRICT_NAME']},{row['MOVE_POP']},{row['SALES']},{row['J_SCORE']}"
+                        district_results[district_id].append(info)
+
+                for store_info in batch:
+                    district_id = store_info.district_id
+                    top5_info = district_results.get(district_id, [])
+
+                    result = LocalStoreLocInfoDistrictHotPlaceTop5(
+                        store_business_number=store_info.store_business_number,
+                        loc_info_district_hot_place_top1_info=(
+                            top5_info[0] if len(top5_info) > 0 else ",,,"
+                        ),
+                        loc_info_district_hot_place_top2_info=(
+                            top5_info[1] if len(top5_info) > 1 else ",,,"
+                        ),
+                        loc_info_district_hot_place_top3_info=(
+                            top5_info[2] if len(top5_info) > 2 else ",,,"
+                        ),
+                        loc_info_district_hot_place_top4_info=(
+                            top5_info[3] if len(top5_info) > 3 else ",,,"
+                        ),
+                        loc_info_district_hot_place_top5_info=(
+                            top5_info[4] if len(top5_info) > 4 else ",,,"
+                        ),
+                    )
+                    results.append(result)
+
+            return results
+
+    except Exception as e:
+        logger.error(
+            f"LocalStoreLocInfoDistrictHotPlaceTop5 가져오는 중 오류 발생: {e}"
+        )
         raise
 
 
@@ -3225,5 +3350,52 @@ def insert_or_update_commercial_district_commercial_district_average_data_batch(
     except Exception as e:
         logging.error(
             f"Error inserting/updating commercial_district top5 top3 data: {e}"
+        )
+        raise
+
+
+# 입지분석 시/군/구 핫플레이스 TOP5 (읍/면/동, 평균유동인구, 매장평균매출, JSCORE점수)
+def insert_or_update_loc_info_district_hot_place_top5_data_thread(
+    batch: List[LocalStoreLocInfoDistrictHotPlaceTop5],
+) -> None:
+    try:
+        with get_service_report_db_connection() as connection:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                insert_query = """
+                    INSERT INTO REPORT (
+                        STORE_BUSINESS_NUMBER,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP1_INFO, 
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP2_INFO,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP3_INFO, 
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP4_INFO,
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP5_INFO
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP1_INFO = VALUES(LOC_INFO_DISTRICT_HOT_PLACE_TOP1_INFO),
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP2_INFO = VALUES(LOC_INFO_DISTRICT_HOT_PLACE_TOP2_INFO),
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP3_INFO = VALUES(LOC_INFO_DISTRICT_HOT_PLACE_TOP3_INFO),
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP4_INFO = VALUES(LOC_INFO_DISTRICT_HOT_PLACE_TOP4_INFO),
+                        LOC_INFO_DISTRICT_HOT_PLACE_TOP5_INFO = VALUES(LOC_INFO_DISTRICT_HOT_PLACE_TOP5_INFO)
+                    ;
+                """
+
+                values = [
+                    (
+                        store_info.store_business_number,
+                        store_info.loc_info_district_hot_place_top1_info,
+                        store_info.loc_info_district_hot_place_top2_info,
+                        store_info.loc_info_district_hot_place_top3_info,
+                        store_info.loc_info_district_hot_place_top4_info,
+                        store_info.loc_info_district_hot_place_top5_info,
+                    )
+                    for store_info in batch
+                ]
+
+                cursor.executemany(insert_query, values)
+                connection.commit()
+
+    except Exception as e:
+        logging.error(
+            f"Error inserting/updating loc info hot place top5 data: {e}"
         )
         raise
