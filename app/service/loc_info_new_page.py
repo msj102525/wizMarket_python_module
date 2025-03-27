@@ -15,13 +15,14 @@ from datetime import datetime
 import os, time
 from tqdm import tqdm
 import sys
+from app.db.connect import get_db_connection, close_connection
+
 from app.crud.loc_info import *
 from datetime import datetime
 
 
 ###### 크롤링 #########
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../"))
-from app.db.connect import get_db_connection, close_connection
 
 
 def crawl_keyword(region_data, connection):
@@ -222,15 +223,15 @@ def crawl_keyword(region_data, connection):
         try:
             with connection.cursor() as cursor:
                 # 인서트 함수
-                # insert_loc_info_data(
-                #     connection,
-                #     data
-                # )
-                # 업데이트 함수
-                update_null_loc_info_data(
+                insert_loc_info_data(
                     connection,
                     data
                 )
+                # 업데이트 함수
+                # update_null_loc_info_data(
+                #     connection,
+                #     data
+                # )
                 connection.commit()
         except Exception as e:
             print(f"Error inserting or updating data: {e}")
@@ -286,14 +287,14 @@ def process_file_directly(all_region_list):
 def process_keywords_from_db():
     # all_region_list = fetch_null_keywords_from_db()
     # new_region_list = all_region_list[2692:]
-    # keyword_list = fetch_test_keywords_from_db()
+    keyword_list = fetch_keywords_from_db()
     # missing_list = find_missing_list()
-    null_list = fetch_null_keywords_from_db()
+    # null_list = fetch_test_keywords_from_db()
     # test_list = null_list[:5]
 
     with ThreadPoolExecutor(max_workers=5) as executor:
         # process_file_directly를 실행하는 스레드를 5개 병렬로 처리
-        executor.map(lambda region: process_file_directly([region]), null_list)
+        executor.map(lambda region: process_file_directly([region]), keyword_list)
 
 
 def find_missing_list():
